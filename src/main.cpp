@@ -12,40 +12,39 @@
     3  7  11 15
 */
 
-float* random_sym_matrix(int size){
+float* random_sym_matrix(){
     std::random_device r;
     std::default_random_engine e(r());
     std::uniform_real_distribution<float> random_float(1,10);
 
-    float* matptr = (float*)malloc(size*size*sizeof(float));
+    float* matptr = (float*)malloc(NB*NB*sizeof(float));
 
-    for(int i = 0; i < size; i++){
-        for(int j = i; j < size; j++){
+    for(int i = 0; i < NB; i++){
+        for(int j = i; j < NB; j++){
             float rand = random_float(e);
-            matptr[i*size+j] = rand;
-            matptr[j*size+i] = rand;
+            matptr[i*NB+j] = rand;
+            matptr[j*NB+i] = rand;
         }
     }
     return matptr;
 }
 
 //Print matrix given a matrix with column-first notation
-void print_matrix(int size, float* matrix){
-    for(int i = 0; i < size; i++){
-        for(int j = 0; j < size; j++){
-            std::cout << matrix[j*size+i] << " ";
+void print_matrix(float* matrix){
+    for(int i = 0; i < NB; i++){
+        for(int j = 0; j < NB; j++){
+            std::cout << matrix[j*NB+i] << " ";
         }
         std::cout << "\n";
     }
 }
 
 int main(int argc, char *argv[]){
-    int matrix_size = 4;
-    float* matrix = random_sym_matrix(matrix_size);
-    print_matrix(matrix_size, matrix);
-    std::cout << "\n";
-    ldlt(matrix_size, matrix);
-    print_matrix(matrix_size, matrix);
+    float* matrix = random_sym_matrix();
+    //print_matrix(matrix);
+    //std::cout << "\n";
+    ldlt(matrix);
+    //print_matrix(matrix);
     free(matrix);
     return 0;
 }

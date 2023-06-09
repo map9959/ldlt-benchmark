@@ -1,3 +1,4 @@
 #pragma once
+#define NB 64
 
-void ldlt(int size, float *matrix);
+void ldlt(float *matrix);
