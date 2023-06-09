@@ -1,0 +1,3 @@
+PROJECT(ldlt-benchmark LANGUAGES CXX)
+
+ADD_SUBDIRECTORY(src)
