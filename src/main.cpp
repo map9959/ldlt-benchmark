@@ -44,7 +44,7 @@ float* random_sym_matrix(){
     std::uniform_real_distribution<float> random_float(-5,5);
 
     float* matptr = (float*)malloc((NB*B)*(NB*B)*sizeof(float));
-    /*
+    
     for(int bi = 0; bi < B; bi++){
         for(int bj = bi; bj < B; bj++){
             if(bi == bj){
@@ -60,12 +60,7 @@ float* random_sym_matrix(){
             }
         }
     }
-    */
-   for(int i = 0; i < NB*B; i++){
-    for(int j = 0; j < NB*B; j++){
-        matptr[NB*B*i+j] = NB*B*i+j;
-    }
-   }
+    
     return matptr;
 }
 
