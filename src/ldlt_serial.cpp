@@ -1,8 +1,7 @@
-#pragma once
 #include "ldlt_serial.hpp"
 
 /*
-    This function stores and accesses arrays with FORTRAN (column-first) notation.
+    This function stores and accesses FORTRAN arrays with column-first notation.
     0  4  8  12
     1  5  9  13
     2  6  10 14

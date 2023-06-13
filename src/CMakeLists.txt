@@ -1,11 +1,11 @@
-ADD_LIBRARY(ldlt
+add_library(ldlt
 	SHARED
 	ldlt_serial.hpp
 	ldlt_serial.cpp
 	)
 
-ADD_EXECUTABLE(benchmark main.cpp)
+add_executable(benchmark main.cpp)
 
-TARGET_LINK_LIBRARIES(benchmark
+target_link_libraries(benchmark
 	ldlt
 	)
