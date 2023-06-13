@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <random>
 #include <iostream>
+#include <chrono>
 
 /*
     These functions store and access FORTRAN arrays with column-first notation.
@@ -24,6 +25,7 @@ void random_sym_block(float* matptr){
     std::default_random_engine e(r());
     std::uniform_real_distribution<float> random_float(-5,5);
 
+    //#pragma omp parallel for num_threads(NUM_THREADS)
     for(int i = 0; i < NB; i++){
         for(int j = i; j < NB; j++){
             float rand = random_float(e);
@@ -39,13 +41,14 @@ float* random_sym_matrix(){
     std::uniform_real_distribution<float> random_float(-5,5);
 
     float* matptr = (float*)malloc((NB*B)*(NB*B)*sizeof(float));
-    
+
     for(int bi = 0; bi < B; bi++){
         for(int bj = bi; bj < B; bj++){
             if(bi == bj){
                 random_sym_block(&matptr[BLOCK_I*bi + BLOCK_J*bj]);
                 continue;
             }
+            //#pragma omp parallel for num_threads(NUM_THREADS)
             for(int i = 0; i < NB; i++){
                 for(int j = 0; j < NB; j++){
                     float rand = random_float(e);
@@ -74,11 +77,23 @@ void print_matrix(float* matrix){
 }
 
 int main(int argc, char *argv[]){
+    std::cout << "using " << NUM_THREADS << " threads\n";
+
+    auto matrix_start = std::chrono::high_resolution_clock::now();
     float* matrix = random_sym_matrix();
-    print_matrix(matrix);
+    auto matrix_end = std::chrono::high_resolution_clock::now();
+    auto matrix_diff = std::chrono::duration_cast<std::chrono::milliseconds>(matrix_end-matrix_start).count();
+    std::cout << "generated " << NB*B << "x" << NB*B << " matrix with block size " << NB  << " in " << matrix_diff << " ms\n";
+    //print_matrix(matrix);
     std::cout << "\n";
+
+    auto ldlt_start = std::chrono::high_resolution_clock::now();
     ldlt_block(matrix);
-    print_matrix(matrix);
+    auto ldlt_end = std::chrono::high_resolution_clock::now();
+    auto ldlt_diff = std::chrono::duration_cast<std::chrono::milliseconds>(ldlt_end-ldlt_start).count();
+    std::cout << "factorized " << NB*B << "x" << NB*B << " matrix with block size " << NB << " in " << ldlt_diff << " ms\n";
+    //print_matrix(matrix);
+
     free(matrix);
     return 0;
 }

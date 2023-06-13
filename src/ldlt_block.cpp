@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <omp.h>
 
 /*
     This function stores and accesses FORTRAN arrays with column-first notation.
@@ -38,6 +39,7 @@ void ldlt_block(float *matrix){
         }
         
         //right-looking section of the LDL^T algorithm
+        #pragma omp parallel for num_threads(NUM_THREADS)
         for(int bj = bi+1; bj < B; bj++){
             for(int k = bi+1; k <= bj; k++){
                 //matrix multiplication and subtraction, -LDL^T
