@@ -55,7 +55,7 @@ float* random_sym_matrix(){
                 for(int j = 0; j < NB; j++){
                     float rand = random_float(e);
                     matptr[BLOCK_I*bi + BLOCK_J*bj + NB*i + j] = rand;
-                    matptr[BLOCK_I*bi + BLOCK_J*bj + NB*j + i] = rand;
+                    matptr[BLOCK_I*bj + BLOCK_J*bi + NB*j + i] = rand;
                 }
             }
         }
