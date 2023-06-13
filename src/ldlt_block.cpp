@@ -1,4 +1,7 @@
 #include "ldlt_block.hpp"
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 
 /*
     This function stores and accesses FORTRAN arrays with column-first notation.
@@ -15,24 +18,36 @@
 */
 
 void ldlt_block(float *matrix){
-    for(int i = 0; i < B; i++){
+    //allocate space for block column
+    float* aux = (float*)malloc(BLOCK_I*sizeof(float));
+
+    for(int bi = 0; bi < B; bi++){
         //factorize diagonal block
-        /*
-        for(int j = i+1; j < NB; j++){
-            matrix[i*NB+j] /= matrix[i*NB+i];
-        }
-        */
+        ldlt(&matrix[BLOCK_I*bi+BLOCK_J*bi]);
+
         //store current column
-        /*
-        */
-        for(int j = i + 1; j < B; j++){
+        memcpy(aux, &matrix[BLOCK_I*bi], BLOCK_I*sizeof(float));
+
+        //divide all columns by diagonal element
+        for(int bj = bi + 1; bj < B; bj++){
             for(int k = 0; k < NB; k++){
-                //divide all columns by diagonal element
+                for(int l = 0; l < NB; l++){
+                    matrix[BLOCK_I*bi + BLOCK_J*bj + NB*k + l] /= matrix[BLOCK_I*bi + BLOCK_J*bi + NB*k + k];
+                }
             }
         }
-        for(int j = i+1; j < B; j++){
-            for(int k = i+1; k <= j; k++){
-                //multiplication and addition
+        
+        //right-looking section of the LDL^T algorithm
+        for(int bj = bi+1; bj < B; bj++){
+            for(int k = bi+1; k <= bj; k++){
+                //matrix multiplication and subtraction, -LDL^T
+                for(int i = 0; i < NB; i++){
+                    for(int j = 0; j < NB; j++){
+                        for(int m = 0; m < NB; m++){
+                            matrix[BLOCK_I*k + BLOCK_J*bj + NB*i + j] -= (aux[BLOCK_J*bj + NB*m + i] + matrix[BLOCK_I*bi + BLOCK_J*k + NB*m + j]);
+                        }
+                    }
+                }
             }
         }
     }

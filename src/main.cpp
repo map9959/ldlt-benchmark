@@ -1,12 +1,7 @@
 #include "ldlt_block.hpp"
-#include <iostream>
 #include <iomanip>
-#include <cstdlib>
-#include <cstring>
 #include <random>
-
-#define BLOCK_I NB*NB*B
-#define BLOCK_J NB*NB
+#include <iostream>
 
 /*
     These functions store and access FORTRAN arrays with column-first notation.
@@ -82,7 +77,7 @@ int main(int argc, char *argv[]){
     float* matrix = random_sym_matrix();
     print_matrix(matrix);
     std::cout << "\n";
-    ldlt(matrix);
+    ldlt_block(matrix);
     print_matrix(matrix);
     free(matrix);
     return 0;
