@@ -22,7 +22,7 @@ void ldlt_block(float *matrix){
     //allocate space for block column
     float* aux = (float*)malloc(BLOCK_I*sizeof(float));
 
-    for(int bi = 0; bi < B; bi++){
+    for(int bi = 0; bi < BLOCKS; bi++){
         //factorize diagonal block
         ldlt(&matrix[BLOCK_I*bi+BLOCK_J*bi]);
 
@@ -31,23 +31,23 @@ void ldlt_block(float *matrix){
 
         //divide all columns by diagonal element
 	    #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
-        for(int bj = bi + 1; bj < B; bj++){
-            for(int k = 0; k < NB; k++){
-                for(int l = 0; l < NB; l++){
-                    matrix[BLOCK_I*bi + BLOCK_J*bj + NB*k + l] /= matrix[BLOCK_I*bi + BLOCK_J*bi + NB*k + k];
+        for(int bj = bi + 1; bj < BLOCKS; bj++){
+            for(int k = 0; k < BLOCK_SIZE; k++){
+                for(int l = 0; l < BLOCK_SIZE; l++){
+                    matrix[BLOCK_I*bi + BLOCK_J*bj + BLOCK_SIZE*k + l] /= matrix[BLOCK_I*bi + BLOCK_J*bi + BLOCK_SIZE*k + k];
                 }
             }
         }
         
         //right-looking section of the LDL^T algorithm
         #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
-        for(int bj = bi+1; bj < B; bj++){
+        for(int bj = bi+1; bj < BLOCKS; bj++){
             for(int k = bi+1; k <= bj; k++){
                 //matrix multiplication and subtraction, -LDL^T
-                for(int i = 0; i < NB; i++){
-                    for(int j = 0; j < NB; j++){
-                        for(int m = 0; m < NB; m++){
-                            matrix[BLOCK_I*k + BLOCK_J*bj + NB*i + j] -= (aux[BLOCK_J*bj + NB*m + i] + matrix[BLOCK_I*bi + BLOCK_J*k + NB*m + j]);
+                for(int i = 0; i < BLOCK_SIZE; i++){
+                    for(int j = 0; j < BLOCK_SIZE; j++){
+                        for(int m = 0; m < BLOCK_SIZE; m++){
+                            matrix[BLOCK_I*k + BLOCK_J*bj + BLOCK_SIZE*i + j] -= (aux[BLOCK_J*bj + BLOCK_SIZE*m + i] + matrix[BLOCK_I*bi + BLOCK_J*k + BLOCK_SIZE*m + j]);
                         }
                     }
                 }

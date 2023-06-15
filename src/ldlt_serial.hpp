@@ -1,5 +1,5 @@
 //elements in a block per row/column
-#define NB 64
+#define BLOCK_SIZE 64
 
 //number of threads to use
 #define NUM_THREADS 32

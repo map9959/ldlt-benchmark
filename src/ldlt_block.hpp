@@ -2,9 +2,9 @@
 #include "ldlt_serial.hpp"
 
 //blocks per row/column
-#define B 64
+#define BLOCKS 64
 
-#define BLOCK_I NB*NB*B
-#define BLOCK_J NB*NB
+#define BLOCK_I BLOCK_SIZE*BLOCK_SIZE*BLOCKS
+#define BLOCK_J BLOCK_SIZE*BLOCK_SIZE
 
 void ldlt_block(float *matrix);

@@ -4,7 +4,7 @@ CXX = clang++
 
 #CXX_OPTS = -I/usr/include/linux/ -I/usr/lib/gcc/x86_64-redhat-linux/8/include/
 
-CXX_OPTS = -fopenmp -I/usr/lib/gcc/x86_64-redhat-linux/8/include/ -fsycl -fsycl-targets=nvptx64-nvidia-cuda
+CXX_OPTS = -fopenmp -fsycl -fsycl-targets=nvptx64-nvidia-cuda
 
 PackedSymmetricMatrix.o: PackedSymmetricMatrix.cpp PackedSymmetricMatrix.hpp
 	$(CXX) $(CXX_OPTS) -c PackedSymmetricMatrix.cpp
@@ -21,7 +21,7 @@ main.o: main.cpp ldlt_serial.hpp ldlt_block.hpp
 ldlt.out: PackedSymmetricMatrix.o ldlt_serial.o ldlt_block.o main.o
 	$(CXX) $(CXX_OPTS) PackedSymmetricMatrix.o ldlt_block.o ldlt_serial.o main.o -o ldlt.out
 
-run:
+run: ldlt.out
 	./ldlt.out
 
 clean:

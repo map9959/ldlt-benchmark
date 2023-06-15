@@ -9,16 +9,16 @@
 */
 
 void ldlt(float *matrix){
-    for(int i = 0; i < NB; i++){
+    for(int i = 0; i < BLOCK_SIZE; i++){
         //divide column
 	    #pragma omp parallel for num_threads(NUM_THREADS)
-        for(int j = i+1; j < NB; j++){
-            matrix[i*NB+j] /= matrix[i*NB+i];
+        for(int j = i+1; j < BLOCK_SIZE; j++){
+            matrix[i*BLOCK_SIZE+j] /= matrix[i*BLOCK_SIZE+i];
         }
 	    #pragma omp parallel for num_threads(NUM_THREADS)
-        for(int j = i+1; j < NB; j++){
+        for(int j = i+1; j < BLOCK_SIZE; j++){
             for(int k = i+1; k <= j; k++){
-                matrix[k*NB+j] -= matrix[i*NB+j]*matrix[i*NB+i]*matrix[i*NB+k];
+                matrix[k*BLOCK_SIZE+j] -= matrix[i*BLOCK_SIZE+j]*matrix[i*BLOCK_SIZE+i]*matrix[i*BLOCK_SIZE+k];
             }
         }
     }
