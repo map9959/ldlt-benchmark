@@ -1,4 +1,5 @@
 #include "ldlt_block.hpp"
+#include "PackedSymmetricMatrix.hpp"
 #include <iomanip>
 #include <random>
 #include <iostream>
@@ -25,7 +26,7 @@ void random_sym_block(float* matptr){
     std::default_random_engine e(r());
     std::uniform_real_distribution<float> random_float(-5,5);
 
-    //#pragma omp parallel for num_threads(NUM_THREADS)
+    #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
     for(int i = 0; i < NB; i++){
         for(int j = i; j < NB; j++){
             float rand = random_float(e);
@@ -48,7 +49,7 @@ float* random_sym_matrix(){
                 random_sym_block(&matptr[BLOCK_I*bi + BLOCK_J*bj]);
                 continue;
             }
-            //#pragma omp parallel for num_threads(NUM_THREADS)
+            #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
             for(int i = 0; i < NB; i++){
                 for(int j = 0; j < NB; j++){
                     float rand = random_float(e);
@@ -79,6 +80,15 @@ void print_matrix(float* matrix){
 int main(int argc, char *argv[]){
     std::cout << "using " << NUM_THREADS << " threads\n";
 
+    auto packed_matrix = PackedSymmetricMatrix(NB*B);
+    auto packed_matrix_start = std::chrono::high_resolution_clock::now();
+    packed_matrix.fill();
+    auto packed_matrix_end = std::chrono::high_resolution_clock::now();
+    auto packed_matrix_diff = std::chrono::duration_cast<std::chrono::milliseconds>(packed_matrix_end-packed_matrix_start).count();
+    std::cout << "generated " << NB*B << "x" << NB*B << " packed matrix with block size " << NB  << " in " << packed_matrix_diff << " ms\n";
+    //print_matrix(matrix);
+    std::cout << "\n";
+
     auto matrix_start = std::chrono::high_resolution_clock::now();
     float* matrix = random_sym_matrix();
     auto matrix_end = std::chrono::high_resolution_clock::now();
@@ -95,5 +105,7 @@ int main(int argc, char *argv[]){
     //print_matrix(matrix);
 
     free(matrix);
+
+
     return 0;
 }

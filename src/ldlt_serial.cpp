@@ -11,9 +11,11 @@
 void ldlt(float *matrix){
     for(int i = 0; i < NB; i++){
         //divide column
+	    #pragma omp parallel for num_threads(NUM_THREADS)
         for(int j = i+1; j < NB; j++){
             matrix[i*NB+j] /= matrix[i*NB+i];
         }
+	    #pragma omp parallel for num_threads(NUM_THREADS)
         for(int j = i+1; j < NB; j++){
             for(int k = i+1; k <= j; k++){
                 matrix[k*NB+j] -= matrix[i*NB+j]*matrix[i*NB+i]*matrix[i*NB+k];

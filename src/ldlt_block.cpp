@@ -30,6 +30,7 @@ void ldlt_block(float *matrix){
         memcpy(aux, &matrix[BLOCK_I*bi], BLOCK_I*sizeof(float));
 
         //divide all columns by diagonal element
+	    #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
         for(int bj = bi + 1; bj < B; bj++){
             for(int k = 0; k < NB; k++){
                 for(int l = 0; l < NB; l++){
@@ -39,7 +40,7 @@ void ldlt_block(float *matrix){
         }
         
         //right-looking section of the LDL^T algorithm
-        #pragma omp parallel for num_threads(NUM_THREADS)
+        #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
         for(int bj = bi+1; bj < B; bj++){
             for(int k = bi+1; k <= bj; k++){
                 //matrix multiplication and subtraction, -LDL^T
