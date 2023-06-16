@@ -1,6 +1,7 @@
 #include "PackedSymmetricMatrix.hpp"
 #include "ldlt_block.hpp"
 #include <iostream>
+#include <iomanip>
 #include <random>
 
 PackedSymmetricMatrix::PackedSymmetricMatrix(int c){
@@ -13,18 +14,24 @@ PackedSymmetricMatrix::~PackedSymmetricMatrix(){
 }
 //row must be >= col
 inline int PackedSymmetricMatrix::index(int col, int row){
-    return size - (cols - col) * ((cols - col) + 1) / 2 + row;
+    return size - (cols - col) * ((cols - col) + 1) / 2 + (row - col);
 }
 inline float PackedSymmetricMatrix::element(int col, int row){
     return data[index(col, row)];
 }
+inline float* PackedSymmetricMatrix::colPointer(int col){
+    return &data[index(col, 0)];
+}
+inline float PackedSymmetricMatrix::elementPointer(int col, int row){
+    return &data[index(col, row)];
+}
 void PackedSymmetricMatrix::print(){
     for(int i = 0; i < cols; i++){
         for(int j = 0; j < i; j++){
-            std::cout << element(j, i) << " ";
+            std::cout << std::fixed << std::setprecision(5) << element(j, i) << " ";
         }
         for(int j = i; j < cols; j++){
-            std::cout << element(i, j) << " ";
+            std::cout << std::fixed << std::setprecision(5) << element(i, j) << " ";
         }
         std::cout << '\n';
     }
@@ -35,6 +42,7 @@ void PackedSymmetricMatrix::fill(){
     std::uniform_real_distribution<float> random_float(-5,5);
     #pragma omp parallel for num_threads(NUM_THREADS)
     for(int i = 0; i < size; i++){
-        data[i] = random_float(e);
+        //data[i] = random_float(e);
+        data[i] = i;
     }
 }

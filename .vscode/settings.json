@@ -60,6 +60,7 @@
         "set": "cpp",
         "cfenv": "cpp",
         "cinttypes": "cpp",
-        "__config": "cpp"
+        "__config": "cpp",
+        "queue": "cpp"
     }
 }

@@ -79,6 +79,9 @@ void print_matrix(float* matrix){
 }
 
 int main(int argc, char *argv[]){
+    using namespace sycl;
+    queue q;
+
     std::cout << "using " << NUM_THREADS << " threads\n";
 
     auto packed_matrix = PackedSymmetricMatrix(BLOCK_SIZE*BLOCKS);
@@ -87,7 +90,7 @@ int main(int argc, char *argv[]){
     auto packed_matrix_end = std::chrono::high_resolution_clock::now();
     auto packed_matrix_diff = std::chrono::duration_cast<std::chrono::milliseconds>(packed_matrix_end-packed_matrix_start).count();
     std::cout << "generated " << BLOCK_SIZE*BLOCKS << "x" << BLOCK_SIZE*BLOCKS << " packed matrix with block size " << BLOCK_SIZE  << " in " << packed_matrix_diff << " ms\n";
-    //print_matrix(matrix);
+    //packed_matrix.print();
     std::cout << "\n";
 
     auto matrix_start = std::chrono::high_resolution_clock::now();

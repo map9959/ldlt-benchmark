@@ -8,6 +8,8 @@ class PackedSymmetricMatrix{
         ~PackedSymmetricMatrix();
         inline int index(int row, int col);
         inline float element(int row, int col);
+        inline float* colPointer(int col);
+        inline float* elementPointer(int col);
         void fill();
         void print();
     private:
