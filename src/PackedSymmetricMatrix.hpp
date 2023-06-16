@@ -9,7 +9,7 @@ class PackedSymmetricMatrix{
         inline int index(int row, int col);
         inline float element(int row, int col);
         inline float* colPointer(int col);
-        inline float* elementPointer(int col);
+        inline float* elementPointer(int col, int row);
         void fill();
         void print();
     private:

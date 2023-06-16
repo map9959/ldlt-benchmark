@@ -22,7 +22,7 @@ inline float PackedSymmetricMatrix::element(int col, int row){
 inline float* PackedSymmetricMatrix::colPointer(int col){
     return &data[index(col, 0)];
 }
-inline float PackedSymmetricMatrix::elementPointer(int col, int row){
+inline float* PackedSymmetricMatrix::elementPointer(int col, int row){
     return &data[index(col, row)];
 }
 void PackedSymmetricMatrix::print(){
