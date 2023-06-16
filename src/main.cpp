@@ -25,7 +25,7 @@
 void random_sym_block(float* matptr){
     std::random_device r;
     std::default_random_engine e(r());
-    std::uniform_real_distribution<float> random_float(-5,5);
+    std::uniform_real_distribution<float> random_float(1,5);
 
     #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
     for(int i = 0; i < BLOCK_SIZE; i++){
