@@ -1,10 +1,8 @@
 #include "ldlt_block.hpp"
-#include "PackedSymmetricMatrix.hpp"
 #include <iomanip>
 #include <random>
 #include <iostream>
 #include <chrono>
-#include <CL/sycl.hpp>
 
 /*
     These functions store and access FORTRAN arrays with column-first notation.
@@ -81,6 +79,8 @@ void print_matrix(float* matrix){
 int main(int argc, char *argv[]){
     using namespace sycl;
     queue q;
+    //std::cout << omp_get_thread_num() << "\n";
+    std::cout << "using GPU: " << q.get_device().get_info<info::device::name>() << "\n";
 
     std::cout << "using " << NUM_THREADS << " threads\n";
 
@@ -101,12 +101,52 @@ int main(int argc, char *argv[]){
     //print_matrix(matrix);
     std::cout << "\n";
 
+    
+    auto packed_matrix_example = PackedSymmetricMatrix(4*2);
+    packed_matrix_example.fill();
+    packed_matrix_example.print();
+
+    float* block_example = (float*)malloc(4*4*sizeof(float));
+    
+    memset(block_example, 0, 4*4*sizeof(float));
+    packed_matrix_example.transferDiagonalBlock(block_example, 1, 4);
+    std::cout << '\n';
+    for(int i = 0; i < 4*4; i++){
+        if(i % 4 == 0){
+            std::cout << '\n';
+        }
+        std::cout << block_example[((4*i)%16)+(i/4)] << " ";
+    }
+
+    packed_matrix_example.transferBlock(block_example, 0, 1, 4);
+    for(int i = 0; i < 4*4; i++){
+        if(i % 4 == 0){
+            std::cout << '\n';
+        }
+        std::cout << block_example[((4*i)%16)+(i/4)] << " ";
+    }
+    
+    float* result_example = (float*)malloc(4*4*sizeof(float));
+    for(int i = 0; i < 16; i++){
+        result_example[i] = 1;
+    }
+    mm_kernel(q, block_example, block_example, result_example, 4);
+    std::cout << '\n';
+    for(int i = 0; i < 4*4; i++){
+        if(i % 4 == 0){
+            std::cout << '\n';
+        }
+        std::cout << result_example[((4*i)%16)+i/4] << " ";
+    }
+    
+    
     auto ldlt_start = std::chrono::high_resolution_clock::now();
-    ldlt_block(matrix);
+    //ldlt_block(matrix);
     auto ldlt_end = std::chrono::high_resolution_clock::now();
     auto ldlt_diff = std::chrono::duration_cast<std::chrono::milliseconds>(ldlt_end-ldlt_start).count();
     std::cout << "factorized " << BLOCK_SIZE*BLOCKS << "x" << BLOCK_SIZE*BLOCKS << " matrix with block size " << BLOCK_SIZE << " in " << ldlt_diff << " ms\n";
     //print_matrix(matrix);
+    
 
     free(matrix);
 

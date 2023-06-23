@@ -4,7 +4,7 @@ CXX = clang++
 
 #CXX_OPTS = -I/usr/include/linux/ -I/usr/lib/gcc/x86_64-redhat-linux/8/include/
 
-CXX_OPTS = -fopenmp -fsycl -fsycl-targets=nvptx64-nvidia-cuda
+CXX_OPTS = -I/mnt/home/mpaciullo/intel/oneapi/compiler/2023.0.0/linux/compiler/include/ -fopenmp -fsycl -fsycl-targets=nvptx64-nvidia-cuda
 
 PackedSymmetricMatrix.o: PackedSymmetricMatrix.cpp PackedSymmetricMatrix.hpp
 	$(CXX) $(CXX_OPTS) -c PackedSymmetricMatrix.cpp
