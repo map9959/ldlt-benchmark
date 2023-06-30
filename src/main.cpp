@@ -141,7 +141,7 @@ int main(int argc, char *argv[]){
     
     
     auto ldlt_start = std::chrono::high_resolution_clock::now();
-    //ldlt_block(matrix);
+    ldlt_block(matrix);
     auto ldlt_end = std::chrono::high_resolution_clock::now();
     auto ldlt_diff = std::chrono::duration_cast<std::chrono::milliseconds>(ldlt_end-ldlt_start).count();
     std::cout << "factorized " << BLOCK_SIZE*BLOCKS << "x" << BLOCK_SIZE*BLOCKS << " matrix with block size " << BLOCK_SIZE << " in " << ldlt_diff << " ms\n";
