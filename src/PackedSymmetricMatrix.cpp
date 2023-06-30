@@ -36,6 +36,27 @@ void PackedSymmetricMatrix::transferBlock(float *dest, int col, int row, int blo
         memcpy(dest+i*blocksize, this->elementPointer(blocksize*col+i, blocksize*row), blocksize*sizeof(float));
     }
 }
+//row must be > col
+void PackedSymmetricMatrix::addBlockToNegative(float *dest, int col, int row, int blocksize)
+{
+    for(int i = 0; i < blocksize; i++){
+        for(int j = 0; j < blocksize; j++){
+            dest[i*blocksize+j] = -dest[i*blocksize+j]+this->element(col*blocksize+j, row*blocksize+i);
+        }
+    }
+}
+void PackedSymmetricMatrix::changeDiagonalBlock(float *src, int block, int blocksize)
+{
+    for(int i = 0; i < blocksize; i++){
+        memcpy(this->colPointer(blocksize*block+i), src+i*blocksize+i, (blocksize-i)*sizeof(float));
+    }
+}
+void PackedSymmetricMatrix::changeBlock(float *src, int col ,int row, int blocksize)
+{
+    for(int i = 0; i < blocksize; i++){
+        memcpy(this->elementPointer(blocksize*col+i, blocksize*row), src+i*blocksize, blocksize*sizeof(float));
+    }
+}
 void PackedSymmetricMatrix::print()
 {
     for(int i = 0; i < cols; i++){

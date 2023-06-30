@@ -10,5 +10,6 @@
 #define BLOCK_J BLOCK_SIZE*BLOCK_SIZE
 
 void ldlt_block(float *matrix);
-void ldlt_parallel(PackedSymmetricMatrix *matrix, sycl::queue *q);
-void mm_kernel(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, size_t N);
+void ldlt_parallel(PackedSymmetricMatrix matrix, sycl::queue &q);
+void mm_kernel(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
+void mm_kernel_abt(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);

@@ -13,6 +13,9 @@ class PackedSymmetricMatrix{
         inline float* elementPointer(int col, int row);
         void transferDiagonalBlock(float* dest, int block, int blocksize);
         void transferBlock(float* dest, int col, int row, int blocksize);
+        void addBlockToNegative(float* dest, int col, int row, int blocksize);
+        void changeDiagonalBlock(float* src, int block, int blocksize);
+        void changeBlock(float* src, int col, int row, int blocksize);
         void fill();
         void print();
     private:

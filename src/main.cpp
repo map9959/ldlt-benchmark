@@ -130,7 +130,7 @@ int main(int argc, char *argv[]){
     for(int i = 0; i < 16; i++){
         result_example[i] = 1;
     }
-    mm_kernel(q, block_example, block_example, result_example, 4);
+    mm_kernel(q, block_example, block_example, result_example, 1, 4);
     std::cout << '\n';
     for(int i = 0; i < 4*4; i++){
         if(i % 4 == 0){
@@ -146,10 +146,13 @@ int main(int argc, char *argv[]){
     auto ldlt_diff = std::chrono::duration_cast<std::chrono::milliseconds>(ldlt_end-ldlt_start).count();
     std::cout << "factorized " << BLOCK_SIZE*BLOCKS << "x" << BLOCK_SIZE*BLOCKS << " matrix with block size " << BLOCK_SIZE << " in " << ldlt_diff << " ms\n";
     //print_matrix(matrix);
-    
 
-    free(matrix);
-
+    auto ldlt_parallel_start = std::chrono::high_resolution_clock::now();
+    ldlt_parallel(packed_matrix, q);
+    auto ldlt_parallel_end = std::chrono::high_resolution_clock::now();
+    auto ldlt_parallel_diff = std::chrono::duration_cast<std::chrono::milliseconds>(ldlt_parallel_end-ldlt_parallel_start).count();
+    std::cout << "factorized " << BLOCK_SIZE*BLOCKS << "x" << BLOCK_SIZE*BLOCKS << " matrix with block size " << BLOCK_SIZE << " in " << ldlt_parallel_diff << " ms\n";
+    //free(matrix);
 
     return 0;
 }
