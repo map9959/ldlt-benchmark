@@ -87,12 +87,10 @@ void ldlt_parallel(PackedSymmetricMatrix matrix, queue &q){
                 //store current column
                 memcpy(&aux[BLOCK_J*bj+BLOCK_SIZE*k], &workspace[BLOCK_I*bi+BLOCK_J*bj+BLOCK_SIZE*k], BLOCK_SIZE*sizeof(float));
                 //divide column by diagonal element
-                #pragma omp parallel for num_threads(NUM_THREADS)
                 for(int l = 0; l < BLOCK_SIZE; l++){
                     workspace[BLOCK_I*bi + BLOCK_J*bj + BLOCK_SIZE*k + l] /= workspace[BLOCK_I*bi + BLOCK_J*bi + BLOCK_SIZE*k + k];
                 }
                 //subtract from the right
-                #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
                 for(int l = k+1; l < BLOCK_SIZE; l++){
                     for(int m = 0; m < BLOCK_SIZE; m++){
                         workspace[BLOCK_I*bi + BLOCK_J*bj + BLOCK_SIZE*m + l] -= aux[BLOCK_J*bj+BLOCK_SIZE*m+k] * workspace[BLOCK_I*bi+BLOCK_J*bi+BLOCK_SIZE*k+l];
