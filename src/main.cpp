@@ -138,7 +138,7 @@ int main(int argc, char *argv[]){
         }
         std::cout << result_example[((4*i)%16)+i/4] << " ";
     }
-    
+    std::cout << '\n' << std::flush;
     
     auto ldlt_start = std::chrono::high_resolution_clock::now();
     ldlt_block(matrix);
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]){
     //print_matrix(matrix);
 
     auto ldlt_parallel_start = std::chrono::high_resolution_clock::now();
-    ldlt_parallel(&packed_matrix, q);
+    ldlt_parallel(&packed_matrix, BLOCK_SIZE*BLOCKS, q);
     auto ldlt_parallel_end = std::chrono::high_resolution_clock::now();
     auto ldlt_parallel_diff = std::chrono::duration_cast<std::chrono::milliseconds>(ldlt_parallel_end-ldlt_parallel_start).count();
     std::cout << "factorized " << BLOCK_SIZE*BLOCKS << "x" << BLOCK_SIZE*BLOCKS << " matrix with block size " << BLOCK_SIZE << " in " << ldlt_parallel_diff << " ms\n";

@@ -14,7 +14,7 @@
 #define REAL_DATATYPE float
 
 void ldlt_block(float *matrix);
-void ldlt_parallel(PackedSymmetricMatrix<REAL_DATATYPE>* matrix, sycl::queue &q);
+void ldlt_parallel(PackedSymmetricMatrix<REAL_DATATYPE>* matrix, size_t n, sycl::queue &q);
 void mm_kernel(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
 void mm_kernel_abt(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
 /* Perform the in-place LDL^T factorization of a packed symmetric matrix of size n x n i
