@@ -84,7 +84,7 @@ int main(int argc, char *argv[]){
 
     std::cout << "using " << NUM_THREADS << " threads\n";
 
-    auto packed_matrix = PackedSymmetricMatrix(BLOCK_SIZE*BLOCKS);
+    auto packed_matrix = PackedSymmetricMatrix<REAL_DATATYPE>(BLOCK_SIZE*BLOCKS, q);
     auto packed_matrix_start = std::chrono::high_resolution_clock::now();
     packed_matrix.fill();
     auto packed_matrix_end = std::chrono::high_resolution_clock::now();
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]){
     std::cout << "\n";
 
     
-    auto packed_matrix_example = PackedSymmetricMatrix(4*2);
+    auto packed_matrix_example = PackedSymmetricMatrix<REAL_DATATYPE>(4*2);
     packed_matrix_example.fill();
     packed_matrix_example.print();
 
@@ -148,11 +148,11 @@ int main(int argc, char *argv[]){
     //print_matrix(matrix);
 
     auto ldlt_parallel_start = std::chrono::high_resolution_clock::now();
-    ldlt_parallel(packed_matrix, q);
+    ldlt_parallel(&packed_matrix, q);
     auto ldlt_parallel_end = std::chrono::high_resolution_clock::now();
     auto ldlt_parallel_diff = std::chrono::duration_cast<std::chrono::milliseconds>(ldlt_parallel_end-ldlt_parallel_start).count();
     std::cout << "factorized " << BLOCK_SIZE*BLOCKS << "x" << BLOCK_SIZE*BLOCKS << " matrix with block size " << BLOCK_SIZE << " in " << ldlt_parallel_diff << " ms\n";
-    //free(matrix);
+    std::cout << "speedup rate: " << ldlt_diff/(double)ldlt_parallel_diff << '\n';
 
     return 0;
 }

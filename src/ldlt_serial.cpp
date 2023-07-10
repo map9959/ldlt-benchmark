@@ -8,7 +8,7 @@
     3  7  11 15
 */
 
-void ldlt(float *matrix){
+void ldlt_serial(float *matrix){
     for(int i = 0; i < BLOCK_SIZE; i++){
         //divide column
 	    #pragma omp parallel for num_threads(NUM_THREADS)

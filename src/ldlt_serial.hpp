@@ -4,4 +4,4 @@
 //number of threads to use
 #define NUM_THREADS 32
 
-void ldlt(float *matrix);
+void ldlt_serial(float *matrix);
