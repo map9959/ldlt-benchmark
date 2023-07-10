@@ -102,29 +102,8 @@ void ldlt_parallel(PackedSymmetricMatrix<float>* matrix, queue &q){
             });
             matrix->changeBlock(&workspace[BLOCK_I*bi+BLOCK_J*bj], bi, bj, BLOCK_SIZE, e);
         }
-        
-        //#pragma omp parallel for num_threads(NUM_THREADS)
-        /*
-        for(int bj = bi+1; bj < BLOCKS; bj++){
-            matrix->addBlockToNegative(&workspace[BLOCK_I*bi+BLOCK_J*bj], bi, bj, BLOCK_SIZE);
-            for(int k = 0; k < BLOCK_SIZE; k++){
-                //store current column
-                memcpy(&aux[BLOCK_J*bj+BLOCK_SIZE*k], &workspace[BLOCK_I*bi+BLOCK_J*bj+BLOCK_SIZE*k], BLOCK_SIZE*sizeof(float));
-                //divide column by diagonal element
-                for(int l = 0; l < BLOCK_SIZE; l++){
-                    workspace[BLOCK_I*bi + BLOCK_J*bj + BLOCK_SIZE*k + l] /= workspace[BLOCK_I*bi + BLOCK_J*bi + BLOCK_SIZE*k + k];
-                }
-                //subtract from the right
-                for(int l = k+1; l < BLOCK_SIZE; l++){
-                    for(int m = 0; m < BLOCK_SIZE; m++){
-                        workspace[BLOCK_I*bi + BLOCK_J*bj + BLOCK_SIZE*m + l] -= aux[BLOCK_J*bj+BLOCK_SIZE*m+k] * workspace[BLOCK_I*bi+BLOCK_J*bi+BLOCK_SIZE*k+l];
-                    }
-                }
-            }
-            matrix->changeBlock(&workspace[BLOCK_I*bi+BLOCK_J*bj], bi, bj, BLOCK_SIZE);
-        }
-        */
         q.wait();
+        
         //right-looking section of the LDL^T algorithm
         for(int bj = bi+1; bj < BLOCKS; bj++){
             for(int k = bi+1; k <= bj; k++){
