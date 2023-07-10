@@ -124,6 +124,7 @@ void ldlt_parallel(PackedSymmetricMatrix<float>* matrix, queue &q){
             matrix->changeBlock(&workspace[BLOCK_I*bi+BLOCK_J*bj], bi, bj, BLOCK_SIZE);
         }
         */
+        q.wait();
         //right-looking section of the LDL^T algorithm
         for(int bj = bi+1; bj < BLOCKS; bj++){
             for(int k = bi+1; k <= bj; k++){
