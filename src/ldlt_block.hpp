@@ -13,10 +13,10 @@
 
 #define REAL_DATATYPE float
 
-void ldlt_block(float *matrix);
-void ldlt_parallel(PackedSymmetricMatrix<REAL_DATATYPE>* matrix, size_t n, sycl::queue &q);
+void ldlt_block(float *matrix, size_t n);
+void ldlt_parallel(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, sycl::queue &q);
 void mm_kernel(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
-void mm_kernel_abt(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
+sycl::event mm_kernel_abt(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
 /* Perform the in-place LDL^T factorization of a packed symmetric matrix of size n x n i
  * Will occupy n * (n+1) / 2 elements in memory
  * Stored like Fortran, by columns!

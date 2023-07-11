@@ -10,25 +10,32 @@ template <typename T> class PackedSymmetricMatrix{
         PackedSymmetricMatrix(int c);
         PackedSymmetricMatrix(T* d, int c);
         ~PackedSymmetricMatrix();
-        inline int index(int col, int row);
-        inline T element(int col, int row){
+        inline int const index(int col, int row) const;
+        inline T const element(int col, int row) const{
             return data[size - (cols - col) * ((cols - col) + 1) / 2 + (row - col)];
         }
-        inline T* colPointer(int col);
-        inline T* elementPointer(int col, int row){
+        inline T* const colPointer(int col) const;
+        inline T* const elementPointer(int col, int row) const{
             return &data[size - (cols - col) * ((cols - col) + 1) / 2 + (row - col)];
         }
-        void transferDiagonalBlock(T* dest, int block, int blocksize);
+        void const transferDiagonalBlock(T* dest, int block, int blocksize) const;
+        inline void const addDiagToNegative(T* dest, int block, int blocksize) const{
+            for(int i = 0; i < blocksize; i++){
+                for(int j = 0; j <= i; j++){
+                    dest[i*blocksize+j] = -dest[i*blocksize+j]+this->element(block*blocksize+j, block*blocksize+i);
+                }
+            }
+        }
         void transferBlock(T* dest, int col, int row, int blocksize);
-        inline void addBlockToNegative(T* dest, int col, int row, int blocksize){
+        inline void const addBlockToNegative(T* dest, int col, int row, int blocksize) const{
             for(int i = 0; i < blocksize; i++){
                 for(int j = 0; j < blocksize; j++){
                     dest[i*blocksize+j] = -dest[i*blocksize+j]+this->element(col*blocksize+j, row*blocksize+i);
                 }
             }
         }
-        void changeDiagonalBlock(T* src, int block, int blocksize);
-        inline void changeBlock(T* src, int col, int row, int blocksize){
+        void const changeDiagonalBlock(T* src, int block, int blocksize) const;
+        inline void changeBlock(T* src, int col, int row, int blocksize) const{
             for(int i = 0; i < blocksize; i++){
                 memcpy(this->elementPointer(blocksize*col+i, blocksize*row), src+i*blocksize, blocksize*sizeof(T));
             }
@@ -50,6 +57,7 @@ template <typename T> class PackedSymmetricMatrix{
         }
         void fill();
         void print();
+        T* get_data();
     private:
         T* data;
         int size;

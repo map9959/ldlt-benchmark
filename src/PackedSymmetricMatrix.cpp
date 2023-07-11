@@ -23,7 +23,7 @@ template <typename T> PackedSymmetricMatrix<T>::~PackedSymmetricMatrix(){
     //free(data, q);
 }
 //row must be >= col
-template <typename T> inline int PackedSymmetricMatrix<T>::index(int col, int row){
+template <typename T> const inline int PackedSymmetricMatrix<T>::index(int col, int row) const{
     return size - (cols - col) * ((cols - col) + 1) / 2 + (row - col);
 }
 /*
@@ -31,7 +31,7 @@ template <typename T> inline T PackedSymmetricMatrix<T>::element(int col, int ro
     return data[index(col, row)];
 }
 */
-template <typename T> inline T* PackedSymmetricMatrix<T>::colPointer(int col){
+template <typename T> inline T* const PackedSymmetricMatrix<T>::colPointer(int col) const{
     return &data[index(col, col)];
 }
 /*
@@ -39,9 +39,9 @@ template <typename T> inline T* PackedSymmetricMatrix<T>::elementPointer(int col
     return &data[index(col, row)];
 }
 */
-template <typename T> void PackedSymmetricMatrix<T>::transferDiagonalBlock(T *dest, int block, int blocksize){
+template <typename T> void const PackedSymmetricMatrix<T>::transferDiagonalBlock(T *dest, int block, int blocksize) const{
     for(int i = 0; i < blocksize; i++){
-        memcpy(dest+i*blocksize+i, this->colPointer(blocksize*block+i), (blocksize-i)*sizeof(float));
+        memcpy(dest+i*blocksize+i, colPointer(blocksize*block+i), (blocksize-i)*sizeof(float));
     }
 }
 //row must be >= col
@@ -59,7 +59,7 @@ template <typename T> void PackedSymmetricMatrix<T>::transferBlock(T *dest, int 
         }
     }
 }*/
-template <typename T> void PackedSymmetricMatrix<T>::changeDiagonalBlock(T *src, int block, int blocksize)
+template <typename T> void const PackedSymmetricMatrix<T>::changeDiagonalBlock(T *src, int block, int blocksize) const
 {
     for(int i = 0; i < blocksize; i++){
         memcpy(this->colPointer(blocksize*block+i), src+i*blocksize+i, (blocksize-i)*sizeof(float));
@@ -93,6 +93,9 @@ template <typename T> void PackedSymmetricMatrix<T>::fill(){
         data[i] = random(e);
         //data[i] = i;
     }
+}
+template <typename T> T* PackedSymmetricMatrix<T>::get_data(){
+    return data;
 }
 
 template class PackedSymmetricMatrix<float>;
