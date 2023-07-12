@@ -161,8 +161,8 @@ int main(int argc, char *argv[]){
 
     //auto ldlt_parallel_start = std::chrono::high_resolution_clock::now();
     gettimeofday(&tp0, nullptr);
-    //ldlt(packed_matrix.get_data(), mat_size);
-    ldlt_parallel(packed_matrix, mat_size, q);
+    ldlt(packed_matrix.get_data(), mat_size);
+    //ldlt_parallel(packed_matrix, mat_size, q);
     gettimeofday(&tp1, nullptr);
     t0 = tp0.tv_sec + (double)tp0.tv_usec / 1e6;
     t1 = tp1.tv_sec + (double)tp1.tv_usec / 1e6;
