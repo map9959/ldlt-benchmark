@@ -79,10 +79,11 @@ void print_matrix(float* matrix){
 
 int main(int argc, char *argv[]){
     using namespace sycl;
-    queue q;
-    //std::cout << omp_get_thread_num() << "\n";
-    std::cout << "using GPU: " << q.get_device().get_info<info::device::name>() << "\n";
+    sycl::property_list q_prop{};
+    queue q(sycl::gpu_selector_v, q_prop);
 
+    //std::cout << omp_get_thread_num() << "\n";
+    std::cout << "using device: " << q.get_device().get_info<info::device::name>() << "\n";
     std::cout << "using " << NUM_THREADS << " threads\n";
 
     size_t mat_size = BLOCK_SIZE*BLOCKS*1;

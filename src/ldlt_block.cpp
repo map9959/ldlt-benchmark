@@ -70,8 +70,8 @@ void ldlt_parallel(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
     //allocate space for block column
     float* aux = malloc_shared<float>((size_t)(BLOCK_J*blocks), q);
     //allocate workspace
-    
     float* workspace = malloc_shared<float>((size_t)(BLOCK_J*blocks*blocks), q);
+
     std::vector<event> diag_transfer;
     std::vector<event> diag_factor;
     diag_transfer.resize(blocks);
@@ -90,7 +90,7 @@ void ldlt_parallel(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
     matmul_status.resize(blocks*blocks);
 
     for(int bi = 0; bi < blocks; bi++){
-        std::cout << "Working on block column " << bi << std::endl << std::flush;
+        //std::cout << "Working on block column " << bi << std::endl << std::flush;
         //transfer and factorize diagonal block, transfer back
         diag_transfer[bi] = q.submit([=](handler &h){
             h.depends_on(matmul_status[bi*blocks+bi]);
@@ -105,7 +105,7 @@ void ldlt_parallel(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
             matrix.changeDiagonalBlock(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi], bi, BLOCK_SIZE);
         });
 
-        std::cout << "Resolving block column " << bi << std::endl << std::flush;
+        //std::cout << "Resolving block column " << bi << std::endl << std::flush;
         //resolve in-block dependencies
         for(int bj = bi+1; bj < blocks; bj++){
             //requires all matrices to be added
@@ -128,7 +128,6 @@ void ldlt_parallel(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
                     //divide column by diagonal element
                     h.parallel_for(range<1>{BLOCK_SIZE}, [=](id<1> l){
                         workspace[BLOCK_J*blocks*bi + BLOCK_J*bj + BLOCK_SIZE*k + l] /= workspace[BLOCK_J*blocks*bi + BLOCK_J*bi + BLOCK_SIZE*k + k];
-                        workspace[BLOCK_J*blocks*bi + BLOCK_J*bj + BLOCK_SIZE*k + l] -= aux[BLOCK_J*bj+BLOCK_SIZE*l+k] * workspace[BLOCK_J*blocks*bi+BLOCK_J*bi+BLOCK_SIZE*k+l];
                     });
                 }));
                 col_resolve[bi*blocks+bj].push_back(q.submit([=](handler &h){
@@ -148,7 +147,7 @@ void ldlt_parallel(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
                 matrix.changeBlock(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bj], bi, bj, BLOCK_SIZE);
             });
         }
-        std::cout << "matrix multiplication for " << bi << std::endl << std::flush;
+        //std::cout << "matrix multiplication for " << bi << std::endl << std::flush;
         //right-looking section of the LDL^T algorithm
         for(int bj = bi+1; bj < blocks; bj++){
             for(int k = bi+1; k <= bj; k++){
@@ -167,8 +166,8 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
     //allocate space for block column
     float* aux = malloc_shared<float>((size_t)(BLOCK_J*blocks), q);
     //allocate workspace
-    
     float* workspace = malloc_shared<float>((size_t)(BLOCK_J*blocks*blocks), q);
+
     std::vector<event> diag_transfer;
     std::vector<event> diag_factor;
     diag_transfer.resize(blocks);
@@ -212,10 +211,10 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
                     h.memcpy(&aux[BLOCK_J*bj+BLOCK_SIZE*k], &workspace[BLOCK_J*blocks*bi+BLOCK_J*bj+BLOCK_SIZE*k], BLOCK_SIZE*sizeof(float));
                 });
                 col_factor[bi*blocks+bj] = q.submit([=](handler &h){
+                    h.depends_on({col_store[bi*blocks+bj]});
                     //divide column by diagonal element
                     h.parallel_for(range<1>{BLOCK_SIZE}, [=](id<1> l){
                         workspace[BLOCK_J*blocks*bi + BLOCK_J*bj + BLOCK_SIZE*k + l] /= workspace[BLOCK_J*blocks*bi + BLOCK_J*bi + BLOCK_SIZE*k + k];
-                        workspace[BLOCK_J*blocks*bi + BLOCK_J*bj + BLOCK_SIZE*k + l] -= aux[BLOCK_J*bj+BLOCK_SIZE*l+k] * workspace[BLOCK_J*blocks*bi+BLOCK_J*bi+BLOCK_SIZE*k+l];
                     });
                 });
                 col_resolve[bi*blocks+bj] = q.submit([=](handler &h){
