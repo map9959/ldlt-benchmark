@@ -5,3 +5,4 @@
 #define NUM_THREADS 32
 
 void ldlt_serial(float *matrix);
+void ldlt_serial_var(float *matrix, int blocksize);

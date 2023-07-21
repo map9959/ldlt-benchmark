@@ -4,6 +4,8 @@
 #include <iostream>
 #include <omp.h>
 #include <oneapi/mkl/blas.hpp>
+#include <fstream>
+#include <iomanip>
 
 /*
     This function stores and accesses FORTRAN arrays with column-first notation.
@@ -61,9 +63,9 @@ void ldlt_block(float *matrix, size_t n){
                     for(int j = 0; j < BLOCK_SIZE; j++){
                         float temp = 0.f;
                         for(int m = 0; m < BLOCK_SIZE; m++){
-                            temp -= (aux[BLOCK_J*bj + BLOCK_SIZE*m + i] * matrix[BLOCK_J*blocks*bi + BLOCK_J*k + BLOCK_SIZE*m + j]);
+                            temp += aux[BLOCK_J*bj + BLOCK_SIZE*m + i] * matrix[BLOCK_J*blocks*bi + BLOCK_J*k + BLOCK_SIZE*m + j];
                         }
-                        matrix[BLOCK_J*blocks*k + BLOCK_J*bj + BLOCK_SIZE*i + j] = temp;
+                        matrix[BLOCK_J*blocks*k + BLOCK_J*bj + BLOCK_SIZE*i + j] -= temp;
                     }
                 }
             }
@@ -167,28 +169,46 @@ void ldlt_parallel(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
     }
 }
 
+void save_matrix_temp(float* matrix, std::string fname, int blocks){
+    std::ofstream f(fname);
+    f << '[';
+    for(int bj = 0; bj < blocks; bj++){
+        for(int j = 0; j < BLOCK_SIZE; j++){
+            for(int bi = 0; bi < blocks; bi++){
+                for(int i = 0; i < BLOCK_SIZE; i++){
+                    f << std::fixed << std::setprecision(5) << matrix[BLOCK_J*blocks*bi + BLOCK_J*bj + BLOCK_SIZE*i + j] << ",";
+                }
+            }
+            f << ";\n";
+        }
+    }
+    f << ']';
+}
+
 void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
     size_t blocks = n/BLOCK_SIZE;
     //allocate space for block column
     float* aux = malloc_shared<float>((size_t)(BLOCK_J*blocks), q);
     //allocate workspace
     float* workspace = malloc_shared<float>((size_t)(BLOCK_J*blocks*blocks), q);
+    memset(workspace, 0, BLOCK_J*blocks*blocks);
 
     for(int bi = 0; bi < blocks; bi++){
         //std::cout << "Working on block column " << bi << std::endl << std::flush;
         //transfer and factorize diagonal block, transfer back
-        q.submit([=](handler &h){
-            matrix.addDiagToNegative(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi], bi, BLOCK_SIZE);
-            ldlt_serial(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi]);
-            matrix.changeDiagonalBlock(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi], bi, BLOCK_SIZE);
-        }).wait();
+        //q.submit([=](handler &h){
+            //matrix.addDiagToNegative(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi], bi, BLOCK_SIZE);
+            //ldlt_serial(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi]);
+            //matrix.changeDiagonalBlock(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi], bi, BLOCK_SIZE);
+        //}).wait();
 
         //std::cout << "Resolving block column " << bi << std::endl << std::flush;
         //resolve in-block dependencies
+        for(int bj = bi+1; bj < blocks; bj++){
+            matrix.addBlockToNegative(&workspace[BLOCK_J*blocks*bi + BLOCK_J*bj], bi, bj, BLOCK_SIZE);
+        }
         q.submit([=](handler &h){
-            for(int bj = bi+1; bj < blocks; bj++){
-                matrix.addBlockToNegative(&workspace[BLOCK_J*blocks*bi + BLOCK_J*bj], bi, bj, BLOCK_SIZE);
-            }
+            
             h.parallel_for(range<2>{blocks, BLOCK_SIZE}, [=](id<2> idx){
                 const int bj = idx[0];
                 const int k = idx[1];
@@ -202,10 +222,10 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
                     }
                 }
             });
-            for(int bj = bi+1; bj < blocks; bj++){
-                matrix.changeBlock(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bj], bi, bj, BLOCK_SIZE);
-            }
         }).wait();
+        for(int bj = bi+1; bj < blocks; bj++){
+            matrix.changeBlock(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bj], bi, bj, BLOCK_SIZE);
+        }
 
         //right-looking section of the LDL^T algorithm
         for(int bj = bi+1; bj < blocks; bj++){
@@ -215,9 +235,9 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
                     h.parallel_for(range<2>{BLOCK_SIZE,BLOCK_SIZE}, [=](item<2> item){
                         const int i = item.get_id(0);
                         const int j = item.get_id(1);
-                        float temp = 0.f;
-                        for (int k = 0; k < BLOCK_SIZE; k++) {
-                            temp += aux[BLOCK_J*bj+k*BLOCK_SIZE+i] * workspace[BLOCK_J*blocks*bi + BLOCK_J*k+k*BLOCK_SIZE+j];
+                        float temp = workspace[BLOCK_J*blocks*k + BLOCK_J*bj+i*BLOCK_SIZE+j];
+                        for (int m = 0; m < BLOCK_SIZE; m++) {
+                            temp += aux[BLOCK_J*bj+m*BLOCK_SIZE+i] * workspace[BLOCK_J*blocks*bi + BLOCK_J*k+m*BLOCK_SIZE+j];
                         }
                         workspace[BLOCK_J*blocks*k + BLOCK_J*bj+j*BLOCK_SIZE+i] = temp;
                     });
@@ -226,6 +246,7 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
         }
         q.wait();
     }
+    save_matrix_temp(workspace, "example-matrix-128-ldlt-parallel.txt", blocks);
 }
 
 //multiplies two column-order matrices A, B of size NxN and adds them to C

@@ -23,3 +23,18 @@ void ldlt_serial(float *matrix){
         }
     }
 }
+void ldlt_serial_var(float *matrix, int blocksize){
+    for(int i = 0; i < blocksize; i++){
+        //divide column
+	    //#pragma omp parallel for num_threads(NUM_THREADS)
+        for(int j = i+1; j < blocksize; j++){
+            matrix[i*blocksize+j] /= matrix[i*blocksize+i];
+        }
+	    //#pragma omp parallel for num_threads(NUM_THREADS)
+        for(int j = i+1; j < blocksize; j++){
+            for(int k = i+1; k <= j; k++){
+                matrix[k*blocksize+j] -= matrix[i*blocksize+j]*matrix[i*blocksize+i]*matrix[i*blocksize+k];
+            }
+        }
+    }
+}

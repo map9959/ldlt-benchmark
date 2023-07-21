@@ -36,3 +36,9 @@ build/
 
 # VSCode
 .vscode/
+
+# Example matrices
+src/example-matrix-4096.txt
+src/example-matrix-128-ldlt.txt
+src/example-matrix-128.txt
+src/example-matrix-128-ldlt-parallel.txt

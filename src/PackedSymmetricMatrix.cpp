@@ -41,7 +41,9 @@ template <typename T> inline T* PackedSymmetricMatrix<T>::elementPointer(int col
 */
 template <typename T> void const PackedSymmetricMatrix<T>::transferDiagonalBlock(T *dest, int block, int blocksize) const{
     for(int i = 0; i < blocksize; i++){
-        memcpy(dest+i*blocksize+i, colPointer(blocksize*block+i), (blocksize-i)*sizeof(float));
+        for(int j = 0; j <= i; j++){
+            dest[i*blocksize+j] = this->element(block*blocksize+j, block*blocksize+i);
+        }
     }
 }
 //row must be >= col
@@ -73,17 +75,20 @@ template <typename T> void PackedSymmetricMatrix<T>::changeBlock(float *src, int
     }
 }
 */
+//prints in MATLAB format
 template <typename T> void PackedSymmetricMatrix<T>::print()
 {
+    std::cout << '[';
     for(int i = 0; i < cols; i++){
         for(int j = 0; j < i; j++){
-            std::cout << std::fixed << std::setprecision(5) << element(j, i) << " ";
+            std::cout << std::fixed << std::setprecision(5) << element(j, i) << ",";
         }
         for(int j = i; j < cols; j++){
-            std::cout << std::fixed << std::setprecision(5) << element(i, j) << " ";
+            std::cout << std::fixed << std::setprecision(5) << element(i, j) << ",";
         }
-        std::cout << '\n';
+        std::cout << ";\n";
     }
+    std::cout << ']';
 }
 template <typename T> void PackedSymmetricMatrix<T>::fill(){
     std::random_device r;
