@@ -41,8 +41,8 @@ template <typename T> inline T* PackedSymmetricMatrix<T>::elementPointer(int col
 */
 template <typename T> void const PackedSymmetricMatrix<T>::transferDiagonalBlock(T *dest, int block, int blocksize) const{
     for(int i = 0; i < blocksize; i++){
-        for(int j = 0; j <= i; j++){
-            dest[i*blocksize+j] = this->element(block*blocksize+j, block*blocksize+i);
+        for(int j = i; j <= blocksize; j++){
+            dest[i*blocksize+j] = this->element(block*blocksize+i, block*blocksize+j);
         }
     }
 }
@@ -57,7 +57,7 @@ template <typename T> void PackedSymmetricMatrix<T>::transferBlock(T *dest, int 
 {
     for(int i = 0; i < blocksize; i++){
         for(int j = 0; j < blocksize; j++){
-            dest[i*blocksize+j] = -dest[i*blocksize+j]+this->element(col*blocksize+j, row*blocksize+i);
+            dest[i*blocksize+j] = -dest[i*blocksize+j]+this->element(col*blocksize+i, row*blocksize+j);
         }
     }
 }*/
@@ -96,8 +96,23 @@ template <typename T> void PackedSymmetricMatrix<T>::fill(){
     std::uniform_real_distribution<T> random(1,5);
     for(int i = 0; i < size; i++){
         data[i] = random(e);
-        //data[i] = i;
+        //data[i] = i+1;
     }
+}
+//saves to file in MATLAB format
+template <typename T> void PackedSymmetricMatrix<T>::save(std::string fname){
+    std::ofstream f(fname);
+    f << '[';
+    for(int i = 0; i < cols; i++){
+        for(int j = 0; j < i; j++){
+            f << std::fixed << std::setprecision(5) << element(j, i) << ",";
+        }
+        for(int j = i; j < cols; j++){
+            f << std::fixed << std::setprecision(5) << element(i, j) << ",";
+        }
+        f << ";\n";
+    }
+    f << ']';
 }
 template <typename T> T* PackedSymmetricMatrix<T>::get_data(){
     return data;

@@ -121,7 +121,7 @@ int main(int argc, char *argv[]){
     std::cout << "using device: " << q.get_device().get_info<info::device::name>() << "\n";
     std::cout << "using " << NUM_THREADS << " threads\n";
 
-    size_t mat_size = BLOCK_SIZE*2; //BLOCK_SIZE*BLOCKS*4;
+    size_t mat_size = BLOCK_SIZE*BLOCKS*2;
     double flops = (double)mat_size*mat_size*mat_size/3.0;
 
     auto packed_matrix = PackedSymmetricMatrix<REAL_DATATYPE>(mat_size, q);
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]){
     auto matrix_end = std::chrono::high_resolution_clock::now();
     auto matrix_diff = std::chrono::duration_cast<std::chrono::milliseconds>(matrix_end-matrix_start).count();
     std::cout << "generated " << mat_size << "x" << mat_size << " matrix with block size " << BLOCK_SIZE << " in " << matrix_diff << " ms\n"; 
-    save_matrix(matrix, "example-matrix-128.txt", mat_size/BLOCK_SIZE);
+    //save_matrix(matrix, "example-matrix-128.txt", mat_size/BLOCK_SIZE);
     std::cout << "\n";
 
     /*
@@ -188,9 +188,9 @@ int main(int argc, char *argv[]){
     double time_seconds = t1-t0;
     double gigaflops_per_s = flops / 1e9 / time_seconds;
     std::cout << "size: " << mat_size << "\nblock size: " << BLOCK_SIZE << "\nelapsed time: " << time_seconds << " s\nperformance: " << gigaflops_per_s << " gigaflops/s\n";
-    save_matrix(matrix, "example-matrix-128-ldlt.txt", mat_size/BLOCK_SIZE);
+    //save_matrix(matrix, "example-matrix-128-ldlt.txt", mat_size/BLOCK_SIZE);
     
-    packed_matrix.print();
+    //packed_matrix.print();
     gettimeofday(&tp0, nullptr);
     ldlt(packed_matrix.get_data(), mat_size);
     //ldlt_parallel(packed_matrix, mat_size, q);
@@ -202,7 +202,6 @@ int main(int argc, char *argv[]){
     std::cout << "size: " << mat_size << "\nblock size: " << BLOCK_SIZE << "\nelapsed time: " << time_seconds_par << " s\nperformance: " << gigaflops_per_s_par << " gigaflops/s\n";
     std::cout << "speedup rate: " << time_seconds/(double)time_seconds_par << '\n';
     //save_matrix(packed_matrix, "example-matrix-128-ldlt-parallel.txt", mat_size/BLOCK_SIZE);
-    packed_matrix.print();
 
     return 0;
 }

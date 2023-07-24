@@ -21,8 +21,8 @@ template <typename T> class PackedSymmetricMatrix{
         void const transferDiagonalBlock(T* dest, int block, int blocksize) const;
         inline void const addDiagToNegative(T* dest, int block, int blocksize) const{
             for(int i = 0; i < blocksize; i++){
-                for(int j = 0; j <= i; j++){
-                    dest[i*blocksize+j] = -dest[i*blocksize+j]+this->element(block*blocksize+j, block*blocksize+i);
+                for(int j = i; j < blocksize; j++){
+                    dest[i*blocksize+j] = -dest[i*blocksize+j]+this->element(block*blocksize+i, block*blocksize+j);
                 }
             }
         }
@@ -30,7 +30,7 @@ template <typename T> class PackedSymmetricMatrix{
         inline void const addBlockToNegative(T* dest, int col, int row, int blocksize) const{
             for(int i = 0; i < blocksize; i++){
                 for(int j = 0; j < blocksize; j++){
-                    dest[i*blocksize+j] = -dest[i*blocksize+j]+this->element(col*blocksize+j, row*blocksize+i);
+                    dest[i*blocksize+j] = -dest[i*blocksize+j]+this->element(col*blocksize+i, row*blocksize+j);
                 }
             }
         }
@@ -40,23 +40,9 @@ template <typename T> class PackedSymmetricMatrix{
                 memcpy(this->elementPointer(blocksize*col+i, blocksize*row), src+i*blocksize, blocksize*sizeof(T));
             }
         }
-        inline void changeBlock(T* src, int col, int row, int blocksize, sycl::event e){
-            for(int i = 0; i < blocksize; i++){
-                //memcpy(this->elementPointer(blocksize*col+i, blocksize*row), src+i*blocksize, blocksize*sizeof(T));
-                q.submit([&](sycl::handler &h){
-                    h.depends_on(e);
-                    h.memcpy(this->elementPointer(blocksize*col+i, blocksize*row), src+i*blocksize, blocksize*sizeof(T));
-                });
-            }
-        }
-        inline void changeBlock(T* src, int col, int row, int blocksize, sycl::handler &h){
-            for(int i = 0; i < blocksize; i++){
-                //memcpy(this->elementPointer(blocksize*col+i, blocksize*row), src+i*blocksize, blocksize*sizeof(T));
-                h.memcpy(this->elementPointer(blocksize*col+i, blocksize*row), src+i*blocksize, blocksize*sizeof(T));
-            }
-        }
         void fill();
         void print();
+        void save(std::string fname);
         T* get_data();
     private:
         T* data;
