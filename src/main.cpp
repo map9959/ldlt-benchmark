@@ -140,44 +140,6 @@ int main(int argc, char *argv[]){
     std::cout << "generated " << mat_size << "x" << mat_size << " matrix with block size " << BLOCK_SIZE << " in " << matrix_diff << " ms\n"; 
     //save_matrix(matrix, "example-matrix-128.txt", mat_size/BLOCK_SIZE);
     //std::cout << "\n";
-
-    /*
-    auto packed_matrix_example = PackedSymmetricMatrix<REAL_DATATYPE>(4*2);
-    packed_matrix_example.fill();
-    packed_matrix_example.print();
-
-    float* block_example = (float*)malloc(4*4*sizeof(float));
-    memset(block_example, 0, 4*4*sizeof(float));
-    packed_matrix_example.transferDiagonalBlock(block_example, 1, 4);
-    std::cout << '\n';
-    for(int i = 0; i < 4*4; i++){
-        if(i % 4 == 0){
-            std::cout << '\n';
-        }
-        std::cout << block_example[((4*i)%16)+(i/4)] << " ";
-    }
-    packed_matrix_example.transferBlock(block_example, 0, 1, 4);
-    for(int i = 0; i < 4*4; i++){
-        if(i % 4 == 0){
-            std::cout << '\n';
-        }
-        std::cout << block_example[((4*i)%16)+(i/4)] << " ";
-    }
-    
-    float* result_example = (float*)malloc(4*4*sizeof(float));
-    for(int i = 0; i < 16; i++){
-        result_example[i] = 1;
-    }
-    mm_kernel(q, block_example, block_example, result_example, 1, 4);
-    std::cout << '\n';
-    for(int i = 0; i < 4*4; i++){
-        if(i % 4 == 0){
-            std::cout << '\n';
-        }
-        std::cout << result_example[((4*i)%16)+i/4] << " ";
-    }
-    std::cout << '\n' << std::flush;
-    */
     
     struct timeval tp0, tp1;
     gettimeofday(&tp0, nullptr);
