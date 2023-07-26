@@ -131,15 +131,15 @@ int main(int argc, char *argv[]){
     auto packed_matrix_diff = std::chrono::duration_cast<std::chrono::milliseconds>(packed_matrix_end-packed_matrix_start).count();
     std::cout << "generated " << mat_size << "x" << mat_size << " packed matrix with block size " << BLOCK_SIZE << " in " << packed_matrix_diff << " ms\n";
     //packed_matrix.print();
-    std::cout << "\n";
+    //std::cout << "\n";
 
     auto matrix_start = std::chrono::high_resolution_clock::now();
     float* matrix = random_sym_matrix(mat_size/BLOCK_SIZE);
     auto matrix_end = std::chrono::high_resolution_clock::now();
     auto matrix_diff = std::chrono::duration_cast<std::chrono::milliseconds>(matrix_end-matrix_start).count();
     std::cout << "generated " << mat_size << "x" << mat_size << " matrix with block size " << BLOCK_SIZE << " in " << matrix_diff << " ms\n"; 
-    save_matrix(matrix, "example-matrix-128.txt", mat_size/BLOCK_SIZE);
-    std::cout << "\n";
+    //save_matrix(matrix, "example-matrix-128.txt", mat_size/BLOCK_SIZE);
+    //std::cout << "\n";
 
     /*
     auto packed_matrix_example = PackedSymmetricMatrix<REAL_DATATYPE>(4*2);
@@ -188,9 +188,9 @@ int main(int argc, char *argv[]){
     double time_seconds = t1-t0;
     double gigaflops_per_s = flops / 1e9 / time_seconds;
     std::cout << "size: " << mat_size << "\nblock size: " << BLOCK_SIZE << "\nelapsed time: " << time_seconds << " s\nperformance: " << gigaflops_per_s << " gigaflops/s\n";
-    save_matrix(matrix, "example-matrix-128-ldlt.txt", mat_size/BLOCK_SIZE);
+    //save_matrix(matrix, "example-matrix-128-ldlt.txt", mat_size/BLOCK_SIZE);
     
-    packed_matrix.save("example-packed-128.txt");
+    //packed_matrix.save("example-packed-128.txt");
     gettimeofday(&tp0, nullptr);
     ldlt(packed_matrix.get_data(), mat_size);
     gettimeofday(&tp1, nullptr);
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]){
     double gigaflops_per_s_par = flops / 1e9 / time_seconds_par;
     std::cout << "size: " << mat_size << "\nblock size: " << BLOCK_SIZE << "\nelapsed time: " << time_seconds_par << " s\nperformance: " << gigaflops_per_s_par << " gigaflops/s\n";
     std::cout << "speedup rate: " << time_seconds/(double)time_seconds_par << '\n';
-    packed_matrix.save("example-packed-128-ldlt.txt");
+    //packed_matrix.save("example-packed-128-ldlt.txt");
     //save_matrix(packed_matrix, "example-matrix-128-ldlt-parallel.txt", mat_size/BLOCK_SIZE);
 
     return 0;
