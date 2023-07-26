@@ -73,109 +73,6 @@ void ldlt_block(float *matrix, size_t n){
     }
 }
 
-void ldlt_parallel(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
-    size_t blocks = n/BLOCK_SIZE;
-    //allocate space for block column
-    float* aux = malloc_shared<float>((size_t)(BLOCK_J*blocks), q);
-    //allocate workspace
-    float* workspace = malloc_shared<float>((size_t)(BLOCK_J*blocks*blocks), q);
-
-    std::vector<event> diag_transfer;
-    std::vector<event> diag_factor;
-    diag_transfer.resize(blocks);
-    diag_factor.resize(blocks);
-
-    std::vector<event> col_transfer;
-    std::vector<std::vector<event>> col_store;
-    std::vector<std::vector<event>> col_factor;
-    std::vector<std::vector<event>> col_resolve;
-    col_transfer.resize(blocks*blocks);
-    col_store.resize(blocks*blocks);
-    col_factor.resize(blocks*blocks);
-    col_resolve.resize(blocks*blocks);
-
-    std::vector<std::vector<event>> matmul_status;
-    matmul_status.resize(blocks*blocks);
-
-    for(int bi = 0; bi < blocks; bi++){
-        //std::cout << "Working on block column " << bi << std::endl << std::flush;
-        //transfer and factorize diagonal block, transfer back
-        //save_matrix_temp(workspace, "step1-"+std::to_string(bi)+".txt", blocks);
-        diag_transfer[bi] = q.submit([=](handler &h){
-            h.depends_on(matmul_status[bi*blocks+bi]);
-            matrix.addDiagToNegative(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi], bi, BLOCK_SIZE);
-        });
-        //save_matrix_temp(workspace, "step2-"+std::to_string(bi)+".txt", blocks);
-        diag_factor[bi] = q.submit([=](handler &h){
-            h.depends_on({diag_transfer[bi]});
-            ldlt_serial(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi]);
-        });
-        //save_matrix_temp(workspace, "step3-"+std::to_string(bi)+".txt", blocks);
-        q.submit([=](handler &h){
-            h.depends_on({diag_factor[bi]});
-            matrix.changeDiagonalBlock(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bi], bi, BLOCK_SIZE);
-        });
-        //matrix.save("step4-"+std::to_string(bi)+".txt");
-
-        //std::cout << "Resolving block column " << bi << std::endl << std::flush;
-        //resolve in-block dependencies
-        for(int bj = bi+1; bj < blocks; bj++){
-            //requires all matrices to be added
-            col_transfer[bi*blocks+bj] = q.submit([=](handler &h){
-                h.depends_on(matmul_status[bi*blocks+bj]);
-                matrix.addBlockToNegative(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bj], bi, bj, BLOCK_SIZE);
-            });
-            //save_matrix_temp(workspace, "step5-"+std::to_string(bi)+".txt", blocks);
-            for(int k = 0; k < BLOCK_SIZE; k++){
-                col_store[bi*blocks+bj].push_back(q.submit([=](handler &h){
-                    if(k == 0){
-                        h.depends_on({col_transfer[bi*blocks+bj], diag_factor[bi]});
-                    }else{
-                        h.depends_on({col_transfer[bi*blocks+bj], diag_factor[bi], col_resolve[bi*blocks+bj][k-1]});
-                    }
-                    //store current column
-                    h.memcpy(&aux[BLOCK_J*bj+BLOCK_SIZE*k], &workspace[BLOCK_J*blocks*bi+BLOCK_J*bj+BLOCK_SIZE*k], BLOCK_SIZE*sizeof(float));
-                }));
-                col_factor[bi*blocks+bj].push_back(q.submit([=](handler &h){
-                    h.depends_on({col_store[bi*blocks+bj][k]});
-                    //divide column by diagonal element
-                    h.parallel_for(range<1>{BLOCK_SIZE}, [=](id<1> l){
-                        workspace[BLOCK_J*blocks*bi + BLOCK_J*bj + BLOCK_SIZE*k + l] /= workspace[BLOCK_J*blocks*bi + BLOCK_J*bi + BLOCK_SIZE*k + k];
-                    });
-                }));
-                col_resolve[bi*blocks+bj].push_back(q.submit([=](handler &h){
-                    h.depends_on({col_factor[bi*blocks+bj][k]});
-                    //subtract from the right
-                    h.parallel_for(range<2>{BLOCK_SIZE, BLOCK_SIZE}, [=](id<2> idx){
-                        const int l = idx[0];
-                        const int m = idx[1];
-                        if(l > k){
-                            workspace[BLOCK_J*blocks*bi + BLOCK_J*bj + BLOCK_SIZE*m + l] -= aux[BLOCK_J*bj+BLOCK_SIZE*m+k] * workspace[BLOCK_J*blocks*bi+BLOCK_J*bi+BLOCK_SIZE*k+l];
-                        }
-                    });
-                }));
-            }
-            q.submit([=](handler &h){
-                h.depends_on({col_resolve[bi*blocks+bj][BLOCK_SIZE-1]});
-                matrix.changeBlock(&workspace[BLOCK_J*blocks*bi+BLOCK_J*bj], bi, bj, BLOCK_SIZE);
-            });
-        }
-        //std::cout << "matrix multiplication for " << bi << std::endl << std::flush;
-        //right-looking section of the LDL^T algorithm
-        for(int bj = bi+1; bj < blocks; bj++){
-            for(int k = bi+1; k <= bj; k++){
-                //matrix multiplication and subtraction, -LDL^T
-                matmul_status[bj*blocks+k].push_back(
-                    mm_kernel_abt(q, &aux[BLOCK_J*bj], &workspace[BLOCK_J*blocks*bi + BLOCK_J*k], &workspace[BLOCK_J*blocks*k + BLOCK_J*bj], 
-                    -1, BLOCK_SIZE, {col_resolve[bi*blocks+bj][BLOCK_SIZE-1], col_resolve[bi*blocks+k][BLOCK_SIZE-1]})
-                );
-            }
-        }
-    }
-    //matrix.save("example-matrix-128-ldlt-parallel-packed.txt");
-    //save_matrix_temp(workspace, "example-matrix-128-ldlt-parallel.txt", blocks);
-}
-
 void save_matrix_temp(float* matrix, std::string fname, int blocks){
     std::ofstream f(fname);
     f << '[';
@@ -218,11 +115,14 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
                 h.parallel_for(range<2>{bcol, BLOCK_SIZE}, [=](id<2> idx){
                     const int bj = idx[0]+bi+1;
                     const int k = idx[1];
+                    const size_t diag_block = BLOCK_J*pick_block(bi, bi, blocks);
+                    const size_t update_block = BLOCK_J*pick_block(bi, bj, blocks);
                     for(int l = 0; l < BLOCK_SIZE; l++){
-                        aux[BLOCK_J*bj + BLOCK_SIZE*l + k] = workspace[BLOCK_J*pick_block(bi, bj, blocks) + BLOCK_SIZE*l + k];
-                        workspace[BLOCK_J*pick_block(bi, bj, blocks) + BLOCK_SIZE*l + k] /= workspace[BLOCK_J*pick_block(bi, bi, blocks) + BLOCK_SIZE*l + l];
+                        aux[BLOCK_J*bj + BLOCK_SIZE*l + k] = workspace[update_block + BLOCK_SIZE*l + k];
+                        workspace[update_block + BLOCK_SIZE*l + k] /= workspace[diag_block + BLOCK_SIZE*l + l];
+                        float temp = aux[BLOCK_J*bj+BLOCK_SIZE*l+k];
                         for(int m = l+1; m < BLOCK_SIZE; m++){
-                            workspace[BLOCK_J*pick_block(bi, bj, blocks) + BLOCK_SIZE*m + k] -= aux[BLOCK_J*bj+BLOCK_SIZE*l+k] * workspace[BLOCK_J*pick_block(bi, bi, blocks)+BLOCK_SIZE*l+m];
+                            workspace[update_block + BLOCK_SIZE*m + k] -= temp * workspace[diag_block + BLOCK_SIZE*l + m];
                         }
                     }
                 });
@@ -232,24 +132,28 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
             }
             //right-looking section of the LDL^T algorithm
             //matrix multiplication and addition, -LDL^T
-            q.submit([&](handler &h){
-                h.parallel_for(range<3>{bcol*bcol, BLOCK_SIZE,BLOCK_SIZE}, [=](id<3> idx){
-                    const int b = idx[0];
-                    const int i = idx[1];
-                    const int j = idx[2];
-                    const int bj = b/bcol+bi+1;
-                    const int k = b%bcol+bi+1;
+            //for(){
+                q.submit([&](handler &h){
+                    h.parallel_for(range<3>{bcol*bcol, BLOCK_SIZE,BLOCK_SIZE}, [=](id<3> idx){
+                        const int b = idx[0];
+                        const int i = idx[1];
+                        const int j = idx[2];
+                        const int bj = b/bcol+bi+1;
+                        const int k = b%bcol+bi+1;
 
-                    if(k <= bj){
-                        float temp = workspace[BLOCK_J*pick_block(k, bj, blocks)+i*BLOCK_SIZE+j];
-                        for (int m = 0; m < BLOCK_SIZE; m++) {
-                            temp += aux[BLOCK_J*bj+m*BLOCK_SIZE+i] * workspace[BLOCK_J*pick_block(bi, k, blocks)+m*BLOCK_SIZE+j];
+                        if(k <= bj){
+                            const size_t l_block = BLOCK_J*pick_block(bi, k, blocks);
+                            const size_t update_block = BLOCK_J*pick_block(k, bj, blocks);
+                            float temp = workspace[update_block + i*BLOCK_SIZE + j];
+                            for (int m = 0; m < BLOCK_SIZE; m++) {
+                                temp += aux[BLOCK_J*bj + m*BLOCK_SIZE + i] * workspace[l_block + m*BLOCK_SIZE + j];
+                            }
+                            workspace[update_block + i*BLOCK_SIZE + j] = temp;
                         }
-                        workspace[BLOCK_J*pick_block(k, bj, blocks)+i*BLOCK_SIZE+j] = temp;
-                    }
+                    });
                 });
-            });
-            q.wait();
+                q.wait();
+            //}
         }
     }
 }

@@ -18,7 +18,6 @@ inline int pick_block(int col, int row, int blocks){
     return blocks*(blocks+1)/2 - (blocks - col) * ((blocks - col) + 1) / 2 + (row - col);
 }
 void ldlt_block(float *matrix, size_t n);
-void ldlt_parallel(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, sycl::queue &q);
 void ldlt_coarse(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, sycl::queue &q);
 void mm_kernel(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
 sycl::event mm_kernel_abt(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
