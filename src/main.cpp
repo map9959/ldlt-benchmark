@@ -121,7 +121,7 @@ int main(int argc, char *argv[]){
     std::cout << "using device: " << q.get_device().get_info<info::device::name>() << "\n";
     std::cout << "using " << NUM_THREADS << " threads\n";
 
-    size_t mat_size = BLOCK_SIZE*2; //BLOCK_SIZE*BLOCKS*4;
+    size_t mat_size = BLOCK_SIZE*BLOCKS*4;
     double flops = (double)mat_size*mat_size*mat_size/3.0;
 
     auto packed_matrix = PackedSymmetricMatrix<REAL_DATATYPE>(mat_size, q);
