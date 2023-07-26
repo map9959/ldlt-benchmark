@@ -13,6 +13,10 @@
 
 #define REAL_DATATYPE float
 
+//formerly BLOCK_J*blocks*bi+BLOCK_J*bi
+inline int pick_block(int col, int row, int blocks){
+    return blocks*(blocks+1)/2 - (blocks - col) * ((blocks - col) + 1) / 2 + (row - col);
+}
 void ldlt_block(float *matrix, size_t n);
 void ldlt_parallel(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, sycl::queue &q);
 void ldlt_coarse(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, sycl::queue &q);
