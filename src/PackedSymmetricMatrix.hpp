@@ -10,7 +10,7 @@ template <typename T> class PackedSymmetricMatrix{
         PackedSymmetricMatrix(size_t c);
         PackedSymmetricMatrix(T* d, size_t c);
         ~PackedSymmetricMatrix();
-        inline int const index(int col, int row) const;
+        inline size_t const index(int col, int row) const;
         inline T const element(int col, int row) const{
             return data[size - (cols - col) * ((cols - col) + 1) / 2 + (row - col)];
         }
@@ -47,6 +47,6 @@ template <typename T> class PackedSymmetricMatrix{
     private:
         T* data;
         size_t size;
-        int cols;
+        size_t cols;
         sycl::queue q;
 };

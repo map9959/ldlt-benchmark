@@ -4,5 +4,7 @@
 //number of threads to use
 #define NUM_THREADS 32
 
-void ldlt_serial(float *matrix);
-void ldlt_serial_var(float *matrix, int blocksize);
+#define REAL_DATATYPE float
+
+void ldlt_serial(REAL_DATATYPE *matrix);
+void ldlt_serial_var(REAL_DATATYPE *matrix, int blocksize);

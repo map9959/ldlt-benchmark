@@ -24,10 +24,10 @@
 */
 using namespace sycl;
 
-void ldlt_block(float *matrix, size_t n){
+void ldlt_block(REAL_DATATYPE *matrix, size_t n){
     size_t blocks = n/BLOCK_SIZE;
     //allocate space for block column
-    float* aux = (float*)malloc(BLOCK_J*blocks*sizeof(float));
+    REAL_DATATYPE* aux = (REAL_DATATYPE*)malloc(BLOCK_J*blocks*sizeof(REAL_DATATYPE));
 
     for(int bi = 0; bi < blocks; bi++){
         //std::cout << "Working on block column " << bi << std::endl << std::flush;
@@ -61,7 +61,7 @@ void ldlt_block(float *matrix, size_t n){
                 #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
                 for(int i = 0; i < BLOCK_SIZE; i++){
                     for(int j = 0; j < BLOCK_SIZE; j++){
-                        float temp = 0.f;
+                        REAL_DATATYPE temp = 0.f;
                         for(int m = 0; m < BLOCK_SIZE; m++){
                             temp += aux[BLOCK_J*bj + BLOCK_SIZE*m + i] * matrix[BLOCK_J*blocks*bi + BLOCK_J*k + BLOCK_SIZE*m + j];
                         }
@@ -73,7 +73,7 @@ void ldlt_block(float *matrix, size_t n){
     }
 }
 
-void save_matrix_temp(float* matrix, std::string fname, int blocks){
+void save_matrix_temp(REAL_DATATYPE* matrix, std::string fname, int blocks){
     std::ofstream f(fname);
     f << '[';
     for(int bj = 0; bj < blocks; bj++){
@@ -97,12 +97,12 @@ inline const int get_row(int n){
     return n-(tri*(tri+1)/2);
 }
 
-void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
+void ldlt_coarse(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, queue &q){
     size_t blocks = n/BLOCK_SIZE;
     //allocate space for block column
-    float* aux = malloc_shared<float>((size_t)(BLOCK_J*blocks), q);
+    REAL_DATATYPE* aux = malloc_shared<REAL_DATATYPE>((size_t)(BLOCK_J*blocks), q);
     //allocate workspace
-    float* workspace = malloc_shared<float>((size_t)(BLOCK_J*blocks*(blocks+1)/2), q);
+    REAL_DATATYPE* workspace = malloc_shared<REAL_DATATYPE>((size_t)(BLOCK_J*blocks*(blocks+1)/2), q);
     memset(workspace, 0, BLOCK_J*blocks*blocks);
 
     for(int bi = 0; bi < blocks; bi++){
@@ -128,7 +128,7 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
                     for(int l = 0; l < BLOCK_SIZE; l++){
                         aux[BLOCK_J*bj + BLOCK_SIZE*l + k] = workspace[update_block + BLOCK_SIZE*l + k];
                         workspace[update_block + BLOCK_SIZE*l + k] /= workspace[diag_block + BLOCK_SIZE*l + l];
-                        float temp = aux[BLOCK_J*bj+BLOCK_SIZE*l+k];
+                        REAL_DATATYPE temp = aux[BLOCK_J*bj+BLOCK_SIZE*l+k];
                         for(int m = l+1; m < BLOCK_SIZE; m++){
                             workspace[update_block + BLOCK_SIZE*m + k] -= temp * workspace[diag_block + BLOCK_SIZE*l + m];
                         }
@@ -140,10 +140,10 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
             }
             //right-looking section of the LDL^T algorithm
             //matrix multiplication and addition, -LDL^T
-            const int matmuls = bcol*(bcol+1)/2;
-            for(int offset = 0; offset < matmuls; offset += BLOCK_SIZE*BLOCK_SIZE){
+            const size_t matmuls = bcol*(bcol+1)/2;
+            for(size_t offset = 0; offset < matmuls; offset += BLOCK_SIZE*BLOCK_SIZE){
                 //std::cout << "Resolving block column " << bi << " matmuls " << std::endl << std::flush;
-                const size_t mm_amount = min(BLOCK_SIZE*BLOCK_SIZE, matmuls-offset);
+                const size_t mm_amount = min((size_t)BLOCK_SIZE*BLOCK_SIZE, matmuls-offset);
                 q.submit([&](handler &h){
                     h.parallel_for(range<3>{mm_amount, BLOCK_SIZE, BLOCK_SIZE}, [=](id<3> idx){
                         const int b = idx[0]+offset;
@@ -154,7 +154,7 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
 
                         const size_t l_block = BLOCK_J*pick_block(bi, k, blocks);
                         const size_t update_block = BLOCK_J*pick_block(k, bj, blocks);
-                        float temp = workspace[update_block + i*BLOCK_SIZE + j];
+                        REAL_DATATYPE temp = workspace[update_block + i*BLOCK_SIZE + j];
                         for (int m = 0; m < BLOCK_SIZE; m++) {
                             temp += aux[BLOCK_J*bj + m*BLOCK_SIZE + i] * workspace[l_block + m*BLOCK_SIZE + j];
                         }

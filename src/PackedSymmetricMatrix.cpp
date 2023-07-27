@@ -23,7 +23,7 @@ template <typename T> PackedSymmetricMatrix<T>::~PackedSymmetricMatrix(){
     //free(data, q);
 }
 //row must be >= col
-template <typename T> const inline int PackedSymmetricMatrix<T>::index(int col, int row) const{
+template <typename T> const inline size_t PackedSymmetricMatrix<T>::index(int col, int row) const{
     return size - (cols - col) * ((cols - col) + 1) / 2 + (row - col);
 }
 /*

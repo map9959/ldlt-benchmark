@@ -11,13 +11,11 @@
 #define BLOCK_I BLOCK_SIZE*BLOCK_SIZE*BLOCKS
 #define BLOCK_J BLOCK_SIZE*BLOCK_SIZE
 
-#define REAL_DATATYPE float
-
 //formerly BLOCK_J*blocks*bi+BLOCK_J*bi
 inline size_t pick_block(size_t col, size_t row, size_t blocks){
     return blocks*(blocks+1)/2 - (blocks - col) * ((blocks - col) + 1) / 2 + (row - col);
 }
-void ldlt_block(float *matrix, size_t n);
+void ldlt_block(REAL_DATATYPE *matrix, size_t n);
 void ldlt_coarse(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, sycl::queue &q);
 void mm_kernel(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
 sycl::event mm_kernel_abt(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
