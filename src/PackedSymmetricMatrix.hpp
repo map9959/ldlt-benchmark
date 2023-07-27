@@ -6,9 +6,9 @@ Example: [a_11, a_21, ..., a_n1, a_22, a_32, ..., a_n2, ..., a_nn]
 #include <CL/sycl.hpp>
 template <typename T> class PackedSymmetricMatrix{
     public:
-        PackedSymmetricMatrix(int c, sycl::queue &qu);
-        PackedSymmetricMatrix(int c);
-        PackedSymmetricMatrix(T* d, int c);
+        PackedSymmetricMatrix(size_t c, sycl::queue &qu);
+        PackedSymmetricMatrix(size_t c);
+        PackedSymmetricMatrix(T* d, size_t c);
         ~PackedSymmetricMatrix();
         inline int const index(int col, int row) const;
         inline T const element(int col, int row) const{
@@ -46,7 +46,7 @@ template <typename T> class PackedSymmetricMatrix{
         T* get_data();
     private:
         T* data;
-        int size;
+        size_t size;
         int cols;
         sycl::queue q;
 };

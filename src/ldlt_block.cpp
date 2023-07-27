@@ -89,6 +89,14 @@ void save_matrix_temp(float* matrix, std::string fname, int blocks){
     f << ']';
 }
 
+inline const int triroot(int n){
+    return (-1+sqrt(1+8*n))/2;
+}
+inline const int get_row(int n){
+    int tri = triroot(n);
+    return n-(tri*(tri+1)/2);
+}
+
 void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
     size_t blocks = n/BLOCK_SIZE;
     //allocate space for block column
@@ -132,28 +140,29 @@ void ldlt_coarse(PackedSymmetricMatrix<float> &matrix, size_t n, queue &q){
             }
             //right-looking section of the LDL^T algorithm
             //matrix multiplication and addition, -LDL^T
-            //for(){
+            const int matmuls = bcol*(bcol+1)/2;
+            for(int offset = 0; offset < matmuls; offset += BLOCK_SIZE*BLOCK_SIZE){
+                //std::cout << "Resolving block column " << bi << " matmuls " << std::endl << std::flush;
+                const size_t mm_amount = min(BLOCK_SIZE*BLOCK_SIZE, matmuls-offset);
                 q.submit([&](handler &h){
-                    h.parallel_for(range<3>{bcol*bcol, BLOCK_SIZE,BLOCK_SIZE}, [=](id<3> idx){
-                        const int b = idx[0];
+                    h.parallel_for(range<3>{mm_amount, BLOCK_SIZE, BLOCK_SIZE}, [=](id<3> idx){
+                        const int b = idx[0]+offset;
                         const int i = idx[1];
                         const int j = idx[2];
-                        const int bj = b/bcol+bi+1;
-                        const int k = b%bcol+bi+1;
+                        const int bj = (blocks-1)-triroot(b);
+                        const int k = (blocks-1)-get_row(b);
 
-                        if(k <= bj){
-                            const size_t l_block = BLOCK_J*pick_block(bi, k, blocks);
-                            const size_t update_block = BLOCK_J*pick_block(k, bj, blocks);
-                            float temp = workspace[update_block + i*BLOCK_SIZE + j];
-                            for (int m = 0; m < BLOCK_SIZE; m++) {
-                                temp += aux[BLOCK_J*bj + m*BLOCK_SIZE + i] * workspace[l_block + m*BLOCK_SIZE + j];
-                            }
-                            workspace[update_block + i*BLOCK_SIZE + j] = temp;
+                        const size_t l_block = BLOCK_J*pick_block(bi, k, blocks);
+                        const size_t update_block = BLOCK_J*pick_block(k, bj, blocks);
+                        float temp = workspace[update_block + i*BLOCK_SIZE + j];
+                        for (int m = 0; m < BLOCK_SIZE; m++) {
+                            temp += aux[BLOCK_J*bj + m*BLOCK_SIZE + i] * workspace[l_block + m*BLOCK_SIZE + j];
                         }
+                        workspace[update_block + i*BLOCK_SIZE + j] = temp;
                     });
                 });
-                q.wait();
-            //}
+            }
+            q.wait();
         }
     }
 }

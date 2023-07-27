@@ -121,7 +121,7 @@ int main(int argc, char *argv[]){
     std::cout << "using device: " << q.get_device().get_info<info::device::name>() << "\n";
     std::cout << "using " << NUM_THREADS << " threads\n";
 
-    size_t mat_size = BLOCK_SIZE*BLOCKS*4;
+    size_t mat_size = BLOCK_SIZE*BLOCKS*16-64;
     double flops = (double)mat_size*mat_size*mat_size/3.0;
 
     auto packed_matrix = PackedSymmetricMatrix<REAL_DATATYPE>(mat_size, q);
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]){
     //std::cout << "\n";
 
     auto matrix_start = std::chrono::high_resolution_clock::now();
-    float* matrix = random_sym_matrix(mat_size/BLOCK_SIZE);
+    //float* matrix = random_sym_matrix(mat_size/BLOCK_SIZE);
     auto matrix_end = std::chrono::high_resolution_clock::now();
     auto matrix_diff = std::chrono::duration_cast<std::chrono::milliseconds>(matrix_end-matrix_start).count();
     std::cout << "generated " << mat_size << "x" << mat_size << " matrix with block size " << BLOCK_SIZE << " in " << matrix_diff << " ms\n"; 
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]){
     
     struct timeval tp0, tp1;
     gettimeofday(&tp0, nullptr);
-    ldlt_block(matrix, mat_size);
+    //ldlt_block(matrix, mat_size);
     gettimeofday(&tp1, nullptr);
     double t0 = tp0.tv_sec + (double)tp0.tv_usec / 1e6;
     double t1 = tp1.tv_sec + (double)tp1.tv_usec / 1e6;
@@ -162,6 +162,7 @@ int main(int argc, char *argv[]){
     double gigaflops_per_s_par = flops / 1e9 / time_seconds_par;
     std::cout << "size: " << mat_size << "\nblock size: " << BLOCK_SIZE << "\nelapsed time: " << time_seconds_par << " s\nperformance: " << gigaflops_per_s_par << " gigaflops/s\n";
     std::cout << "speedup rate: " << time_seconds/(double)time_seconds_par << '\n';
+    std::cout << "hypothetical speedup rate: " << gigaflops_per_s_par/(double)23 << '\n';
     //packed_matrix.save("example-packed-128-ldlt.txt");
     //save_matrix(packed_matrix, "example-matrix-128-ldlt-parallel.txt", mat_size/BLOCK_SIZE);
 

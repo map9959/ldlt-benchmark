@@ -3,18 +3,18 @@
 #include <iostream>
 #include <iomanip>
 #include <random>
-template <typename T> PackedSymmetricMatrix<T>::PackedSymmetricMatrix(int c, sycl::queue &qu){
+template <typename T> PackedSymmetricMatrix<T>::PackedSymmetricMatrix(size_t c, sycl::queue &qu){
     cols = c;
     size = cols * (cols + 1)/2;
     q = qu;
     data = sycl::malloc_shared<T>((size_t)size, q);
 }
-template <typename T> PackedSymmetricMatrix<T>::PackedSymmetricMatrix(int c){
+template <typename T> PackedSymmetricMatrix<T>::PackedSymmetricMatrix(size_t c){
     cols = c;
     size = cols * (cols + 1)/2;
     data = new T[size];
 }
-template <typename T> PackedSymmetricMatrix<T>::PackedSymmetricMatrix(T* d, int c){
+template <typename T> PackedSymmetricMatrix<T>::PackedSymmetricMatrix(T* d, size_t c){
     data = d;
     cols = c;
     size = cols * (cols + 1)/2;
@@ -94,9 +94,9 @@ template <typename T> void PackedSymmetricMatrix<T>::fill(){
     std::random_device r;
     std::default_random_engine e(r());
     std::uniform_real_distribution<T> random(1,5);
-    for(int i = 0; i < size; i++){
+    for(size_t i = 0; i < size; i++){
         data[i] = random(e);
-        //data[i] = i+1;
+        //data[i] = i%100000+1;
     }
 }
 //saves to file in MATLAB format

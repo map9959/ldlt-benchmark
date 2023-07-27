@@ -14,7 +14,7 @@
 #define REAL_DATATYPE float
 
 //formerly BLOCK_J*blocks*bi+BLOCK_J*bi
-inline int pick_block(int col, int row, int blocks){
+inline size_t pick_block(size_t col, size_t row, size_t blocks){
     return blocks*(blocks+1)/2 - (blocks - col) * ((blocks - col) + 1) / 2 + (row - col);
 }
 void ldlt_block(float *matrix, size_t n);
