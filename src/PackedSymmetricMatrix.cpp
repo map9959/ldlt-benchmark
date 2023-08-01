@@ -8,19 +8,26 @@ template <typename T> PackedSymmetricMatrix<T>::PackedSymmetricMatrix(size_t c, 
     size = cols * (cols + 1)/2;
     q = qu;
     data = sycl::malloc_shared<T>((size_t)size, q);
+    parallel = true;
 }
 template <typename T> PackedSymmetricMatrix<T>::PackedSymmetricMatrix(size_t c){
     cols = c;
     size = cols * (cols + 1)/2;
     data = new T[size];
+    parallel = false;
 }
 template <typename T> PackedSymmetricMatrix<T>::PackedSymmetricMatrix(T* d, size_t c){
     data = d;
     cols = c;
     size = cols * (cols + 1)/2;
+    parallel = false;
 }
 template <typename T> PackedSymmetricMatrix<T>::~PackedSymmetricMatrix(){
-    //free(data, q);
+    if(parallel){
+        free(data, q);
+    }else{
+        
+    }
 }
 //row must be >= col
 template <typename T> const inline size_t PackedSymmetricMatrix<T>::index(int col, int row) const{
@@ -91,6 +98,7 @@ template <typename T> void PackedSymmetricMatrix<T>::print()
     std::cout << ']';
 }
 template <typename T> void PackedSymmetricMatrix<T>::fill(){
+    std::srand(31415);
     std::random_device r;
     std::default_random_engine e(r());
     std::uniform_real_distribution<T> random(1,5);

@@ -24,6 +24,14 @@
 */
 using namespace sycl;
 
+inline const int triroot(int n){
+    return (-1+sqrt(1+8*n))/2;
+}
+inline const int get_row(int n){
+    int tri = triroot(n);
+    return n-(tri*(tri+1)/2);
+}
+
 void ldlt_block(REAL_DATATYPE *matrix, size_t n){
     size_t blocks = n/BLOCK_SIZE;
     //allocate space for block column
@@ -73,6 +81,73 @@ void ldlt_block(REAL_DATATYPE *matrix, size_t n){
     }
 }
 
+void ldlt_block_packed(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n){
+    size_t blocks = n/BLOCK_SIZE;
+    //allocate space for block column
+    REAL_DATATYPE* aux = (REAL_DATATYPE*)malloc((size_t)(sizeof(REAL_DATATYPE)*BLOCK_J*blocks));
+    memset(aux, 0, sizeof(REAL_DATATYPE)*BLOCK_J*blocks);
+    //allocate workspace
+    REAL_DATATYPE* workspace = (REAL_DATATYPE*)malloc((size_t)(sizeof(REAL_DATATYPE)*BLOCK_J*blocks*(blocks+1)/2));
+    memset(workspace, 0, sizeof(REAL_DATATYPE)*BLOCK_J*blocks*(blocks+1)/2);
+
+    for(int bi = 0; bi < blocks; bi++){
+        //std::cout << "Working on block column " << bi << std::endl << std::flush;
+        //factorize diagonal block
+        matrix.addDiagToNegative(&workspace[BLOCK_J*pick_block(bi, bi, blocks)], bi, BLOCK_SIZE);
+        ldlt_serial(&workspace[BLOCK_J*pick_block(bi, bi, blocks)]);
+        matrix.changeDiagonalBlock(&workspace[BLOCK_J*pick_block(bi, bi, blocks)], bi, BLOCK_SIZE);
+
+        //resolve in-block dependencies
+        for(int bj = bi+1; bj < blocks; bj++){
+            matrix.addBlockToNegative(&workspace[BLOCK_J*pick_block(bi, bj, blocks)], bi, bj, BLOCK_SIZE);
+        }
+        #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
+        for(int bj = bi + 1; bj < blocks; bj++){
+            const size_t diag_block = BLOCK_J*pick_block(bi, bi, blocks);
+            const size_t update_block = BLOCK_J*pick_block(bi, bj, blocks);
+            //for each row in each block
+            for(int k = 0; k < BLOCK_SIZE; k++){
+                //for each element in each row
+                for(int l = 0; l < BLOCK_SIZE; l++){
+                        aux[BLOCK_J*bj + BLOCK_SIZE*l + k] = workspace[update_block + BLOCK_SIZE*l + k];
+                        workspace[update_block + BLOCK_SIZE*l + k] /= workspace[diag_block + BLOCK_SIZE*l + l];
+                        REAL_DATATYPE temp = aux[BLOCK_J*bj+BLOCK_SIZE*l+k];
+                        for(int m = l+1; m < BLOCK_SIZE; m++){
+                            workspace[update_block + BLOCK_SIZE*m + k] -= temp * workspace[diag_block + BLOCK_SIZE*l + m];
+                        }
+                    }
+            }
+        }
+        for(int bj = bi+1; bj < blocks; bj++){
+            matrix.changeBlock(&workspace[BLOCK_J*pick_block(bi, bj, blocks)], bi, bj, BLOCK_SIZE);
+        }
+        
+        //right-looking section of the LDL^T algorithm
+        const size_t bcol = blocks-(bi+1);
+        const size_t matmuls = bcol*(bcol+1)/2;
+        //#pragma omp parallel for num_threads(NUM_THREADS)
+        for(size_t b = 0; b < matmuls; b++){
+            const int bj = (blocks-1)-triroot(b);
+            const int k = (blocks-1)-get_row(b);
+            const size_t l_block = BLOCK_J*pick_block(bi, k, blocks);
+            const size_t update_block = BLOCK_J*pick_block(k, bj, blocks);
+            //matrix multiplication and subtraction, -LDL^T
+            #pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
+            for(int i = 0; i < BLOCK_SIZE; i++){
+                for(int j = 0; j < BLOCK_SIZE; j++){
+                    REAL_DATATYPE temp = 0.f;
+                    for(int m = 0; m < BLOCK_SIZE; m++){
+                        temp += aux[BLOCK_J*bj + BLOCK_SIZE*m + i] * workspace[l_block + BLOCK_SIZE*m + j];
+                    }
+                    workspace[update_block + BLOCK_SIZE*i + j] += temp;
+                }
+            }
+        }
+    }
+    free(aux);
+    free(workspace);
+}
+
 void save_matrix_temp(REAL_DATATYPE* matrix, std::string fname, int blocks){
     std::ofstream f(fname);
     f << '[';
@@ -89,21 +164,14 @@ void save_matrix_temp(REAL_DATATYPE* matrix, std::string fname, int blocks){
     f << ']';
 }
 
-inline const int triroot(int n){
-    return (-1+sqrt(1+8*n))/2;
-}
-inline const int get_row(int n){
-    int tri = triroot(n);
-    return n-(tri*(tri+1)/2);
-}
-
 void ldlt_coarse(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, queue &q){
     size_t blocks = n/BLOCK_SIZE;
     //allocate space for block column
     REAL_DATATYPE* aux = malloc_shared<REAL_DATATYPE>((size_t)(BLOCK_J*blocks), q);
+    memset(aux, 0, BLOCK_J*blocks);
     //allocate workspace
     REAL_DATATYPE* workspace = malloc_shared<REAL_DATATYPE>((size_t)(BLOCK_J*blocks*(blocks+1)/2), q);
-    memset(workspace, 0, BLOCK_J*blocks*blocks);
+    memset(workspace, 0, sizeof(REAL_DATATYPE)*BLOCK_J*blocks*(blocks+1)/2);
 
     for(int bi = 0; bi < blocks; bi++){
         //std::cout << "Working on block column " << bi << std::endl << std::flush;
@@ -165,6 +233,8 @@ void ldlt_coarse(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, queue &
             q.wait();
         }
     }
+    free(aux, q);
+    free(workspace, q);
 }
 
 //multiplies two column-order matrices A, B of size NxN and adds them to C
@@ -292,5 +362,17 @@ void ldlt(REAL_DATATYPE *matrix, size_t n){
     }
     queue q;
     PackedSymmetricMatrix packed_matrix = PackedSymmetricMatrix(matrix, n);
+    //packed_matrix.save("example-packed-128.txt");
     ldlt_coarse(packed_matrix, n, q);
+    //packed_matrix.save("example-packed-128-ldlt.txt");
+}
+void ldlt_cpu(REAL_DATATYPE *matrix, size_t n){
+    if(n % BLOCK_SIZE != 0){
+        std::cout << "ERROR: Block size must be divisible by " << BLOCK_SIZE << '\n';
+        return;
+    }
+    PackedSymmetricMatrix packed_matrix = PackedSymmetricMatrix(matrix, n);
+    //packed_matrix.save("example-matrix-128.txt");
+    ldlt_block_packed(packed_matrix, n);
+    //packed_matrix.save("example-matrix-128-ldlt.txt");
 }

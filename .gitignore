@@ -44,3 +44,8 @@ src/example-matrix-128.txt
 src/example-matrix-128-ldlt-parallel.txt
 src/example-packed-128-ldlt.txt
 src/example-packed-128.txt
+
+# Results files
+src/results.txt
+src/results2.txt
+src/results3.txt

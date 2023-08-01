@@ -49,4 +49,5 @@ template <typename T> class PackedSymmetricMatrix{
         size_t size;
         size_t cols;
         sycl::queue q;
+        bool parallel;
 };

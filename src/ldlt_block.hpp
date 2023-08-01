@@ -16,6 +16,7 @@ inline size_t pick_block(size_t col, size_t row, size_t blocks){
     return blocks*(blocks+1)/2 - (blocks - col) * ((blocks - col) + 1) / 2 + (row - col);
 }
 void ldlt_block(REAL_DATATYPE *matrix, size_t n);
+void ldlt_block_packed(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n);
 void ldlt_coarse(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, sycl::queue &q);
 void mm_kernel(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
 sycl::event mm_kernel_abt(sycl::queue &q, float *matrix_a, float *matrix_b, float *matrix_c, float alpha, size_t N);
@@ -28,3 +29,4 @@ sycl::event mm_kernel_abt(sycl::queue &q, float *matrix_a, float *matrix_b, floa
  * Practically, the new matrix is really L - I + D
  */
 void ldlt(REAL_DATATYPE *matrix, size_t n);
+void ldlt_cpu(REAL_DATATYPE *matrix, size_t n);
