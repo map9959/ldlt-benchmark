@@ -22,7 +22,7 @@ ldlt.out: PackedSymmetricMatrix.o ldlt_serial.o ldlt_block.o main.o
 	$(CXX) $(CXX_OPTS) PackedSymmetricMatrix.o ldlt_block.o ldlt_serial.o main.o -o ldlt.out
 
 run: ldlt.out
-	./ldlt.out
+	./ldlt.out 4096 results.txt
 
 clean:
 	rm -f *.o ldlt ldlt.out

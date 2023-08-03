@@ -3,7 +3,6 @@
 #include <cstring>
 #include <iostream>
 #include <omp.h>
-#include <oneapi/mkl/blas.hpp>
 #include <fstream>
 #include <iomanip>
 
@@ -164,6 +163,7 @@ void save_matrix_temp(REAL_DATATYPE* matrix, std::string fname, int blocks){
     f << ']';
 }
 
+//equivalent to ssptrf in lapack, LDL^T for packed symmetric matrix
 void ldlt_coarse(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, queue &q){
     size_t blocks = n/BLOCK_SIZE;
     //allocate space for block column
@@ -235,6 +235,68 @@ void ldlt_coarse(PackedSymmetricMatrix<REAL_DATATYPE> &matrix, size_t n, queue &
     }
     free(aux, q);
     free(workspace, q);
+}
+
+//equivalent to sytrf in lapack, LDL^T for unpacked symmetric matrix
+void ldlt_sytrf(REAL_DATATYPE *matrix, size_t n, queue &q){
+    size_t blocks = n/BLOCK_SIZE;
+    //allocate space for block column
+    REAL_DATATYPE* aux = malloc_shared<REAL_DATATYPE>((size_t)(BLOCK_J*blocks), q);
+    memset(aux, 0, BLOCK_J*blocks);
+
+    for(int bi = 0; bi < blocks; bi++){
+        //std::cout << "Working on block column " << bi << std::endl << std::flush;
+        //transfer and factorize diagonal block, transfer back
+        ldlt_serial(&matrix[BLOCK_J*pick_block_unpacked(bi, bi, blocks)]);
+        
+        if(bi != blocks-1){
+            //std::cout << "Resolving block column " << bi << std::endl << std::flush;
+            //resolve in-block dependencies
+            const size_t bcol = blocks-(bi+1);
+            q.submit([=](handler &h){
+                h.parallel_for(range<2>{bcol, BLOCK_SIZE}, [=](id<2> idx){
+                    const int bj = idx[0]+bi+1;
+                    const int k = idx[1];
+                    const size_t diag_block = BLOCK_J*pick_block_unpacked(bi, bi, blocks);
+                    const size_t update_block = BLOCK_J*pick_block_unpacked(bi, bj, blocks);
+                    for(int l = 0; l < BLOCK_SIZE; l++){
+                        aux[BLOCK_J*bj + BLOCK_SIZE*l + k] = matrix[update_block + BLOCK_SIZE*l + k];
+                        matrix[update_block + BLOCK_SIZE*l + k] /= matrix[diag_block + BLOCK_SIZE*l + l];
+                        REAL_DATATYPE temp = aux[BLOCK_J*bj+BLOCK_SIZE*l+k];
+                        for(int m = l+1; m < BLOCK_SIZE; m++){
+                            matrix[update_block + BLOCK_SIZE*m + k] -= temp * matrix[diag_block + BLOCK_SIZE*l + m];
+                        }
+                    }
+                });
+            }).wait();
+            //right-looking section of the LDL^T algorithm
+            //matrix multiplication and addition, -LDL^T
+            const size_t matmuls = bcol*(bcol+1)/2;
+            for(size_t offset = 0; offset < matmuls; offset += BLOCK_SIZE*BLOCK_SIZE){
+                //std::cout << "Resolving block column " << bi << " matmuls " << std::endl << std::flush;
+                const size_t mm_amount = min((size_t)BLOCK_SIZE*BLOCK_SIZE, matmuls-offset);
+                q.submit([&](handler &h){
+                    h.parallel_for(range<3>{mm_amount, BLOCK_SIZE, BLOCK_SIZE}, [=](id<3> idx){
+                        const int b = idx[0]+offset;
+                        const int i = idx[1];
+                        const int j = idx[2];
+                        const int bj = (blocks-1)-triroot(b);
+                        const int k = (blocks-1)-get_row(b);
+
+                        const size_t l_block = BLOCK_J*pick_block_unpacked(bi, k, blocks);
+                        const size_t update_block = BLOCK_J*pick_block_unpacked(k, bj, blocks);
+                        REAL_DATATYPE temp = matrix[update_block + i*BLOCK_SIZE + j];
+                        for (int m = 0; m < BLOCK_SIZE; m++) {
+                            temp -= aux[BLOCK_J*bj + m*BLOCK_SIZE + i] * matrix[l_block + m*BLOCK_SIZE + j];
+                        }
+                        matrix[update_block + i*BLOCK_SIZE + j] = temp;
+                    });
+                });
+            }
+            q.wait();
+        }
+    }
+    free(aux, q);
 }
 
 //multiplies two column-order matrices A, B of size NxN and adds them to C
@@ -360,7 +422,8 @@ void ldlt(REAL_DATATYPE *matrix, size_t n){
         std::cout << "ERROR: Block size must be divisible by " << BLOCK_SIZE << '\n';
         return;
     }
-    queue q;
+    sycl::property_list q_prop{};
+    queue q(sycl::gpu_selector_v, q_prop);
     PackedSymmetricMatrix packed_matrix = PackedSymmetricMatrix(matrix, n);
     //packed_matrix.save("example-packed-128.txt");
     ldlt_coarse(packed_matrix, n, q);
